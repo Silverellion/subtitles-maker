@@ -12,57 +12,76 @@
 
     <Grid RowDefinitions="Auto,Auto,1*,Auto" ColumnDefinitions="*">
         <Grid Grid.Row="0" Margin="40,30,40,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="100" />
-            </Grid.ColumnDefinitions>
-
-            <TextBox Grid.Column="0"
-                     Text="C:\subtitles-maker\Saved\Models\ggml-large-v3-turbo.bin"
+            <TextBox x:Name="ModelPathTextBox"
+                     Text="C:\subtitles-maker\models\ggml-large-v3-turbo.bin"
                      Background="rgb(30,30,30)"
                      Foreground="rgb(255,255,255)"
                      CornerRadius="4"
                      FontSize="14"
                      Padding="10"
                      BorderBrush="rgb(80,80,80)"
-                     BorderThickness="1"
-                     Margin="0,0,10,0"/>
+                     BorderThickness="1">
+                <TextBox.InnerRightContent>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Width="40" Height="40" Margin="0,0,10,0">
-                    <Image Source="avares://subtitles-maker/assets/icons/folder-open.png" Width="24" Height="24"/>
-                </Button>
-                <Button Width="40" Height="40">
-                    <Image Source="avares://subtitles-maker/assets/icons/folder-new.png" Width="24" Height="24"/>
-                </Button>
-            </StackPanel>
+                        <Button x:Name="OpenModelFolderButton" 
+                                Width="40" Height="40" 
+                                Margin="0,0,5,0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ToolTip.Tip="Open model folder">
+                            <Image Source="avares://subtitles-maker/assets/icons/folder-open.png" Width="24" Height="24"/>
+                        </Button>
+
+                        <Button x:Name="ChooseNewModelButton" 
+                                Width="40" Height="40" 
+                                Margin="0,0,5,0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ToolTip.Tip="Choose new model">
+                            <Image Source="avares://subtitles-maker/assets/icons/folder-new.png" Width="24" Height="24"/>
+                        </Button>
+
+                    </StackPanel>
+                </TextBox.InnerRightContent>
+            </TextBox>
         </Grid>
 
         <Grid Grid.Row="1" Margin="40,10,40,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="100" />
-            </Grid.ColumnDefinitions>
-
-            <TextBox Grid.Column="0"
-                     Text="C:\subtitles-maker\Output"
+            <TextBox x:Name="OutputPathTextBox"
+                     Text="C:\subtitles-maker\output"
                      Background="rgb(30,30,30)"
                      Foreground="rgb(255,255,255)"
                      CornerRadius="4"
                      FontSize="14"
                      Padding="10"
                      BorderBrush="rgb(80,80,80)"
-                     BorderThickness="1"
-                     Margin="0,0,10,0"/>
+                     BorderThickness="1">
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Width="40" Height="40" Margin="0,0,10,0">
-                    <Image Source="avares://subtitles-maker/assets/icons/folder-open.png" Width="24" Height="24"/>
-                </Button>
-                <Button Width="40" Height="40">
-                    <Image Source="avares://subtitles-maker/assets/icons/folder-new.png" Width="24" Height="24"/>
-                </Button>
-            </StackPanel>
+                <TextBox.InnerRightContent>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                        <Button x:Name="OpenOutputFolderButton" 
+                                Width="40" Height="40" 
+                                Margin="0,0,5,0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ToolTip.Tip="Open output folder">
+                            <Image Source="avares://subtitles-maker/assets/icons/folder-open.png" Width="24" Height="24"/>
+                        </Button>
+
+                        <Button x:Name="ChooseNewOutputFolderButton" 
+                                Width="40" Height="40" 
+                                Margin="0,0,5,0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ToolTip.Tip="Choose new output folder">
+                            <Image Source="avares://subtitles-maker/assets/icons/folder-new.png" Width="24" Height="24"/>
+                        </Button>
+
+                    </StackPanel>
+                </TextBox.InnerRightContent>
+            </TextBox>
         </Grid>
 
         <Grid Grid.Row="2" Margin="40,20,40,10">
@@ -100,10 +119,11 @@
                       BorderBrush="rgb(80,80,80)"
                       BorderThickness="1"
                       SelectedIndex="0">
-                <ComboBoxItem Content="Japanese"/>
+
                 <ComboBoxItem Content="English"/>
-                <ComboBoxItem Content="German"/>
                 <ComboBoxItem Content="French"/>
+                <ComboBoxItem Content="German"/>
+                <ComboBoxItem Content="Japanese"/>
                 <ComboBoxItem Content="Spanish"/>
             </ComboBox>
         </Grid>
@@ -116,13 +136,16 @@
                 BorderThickness="1"
                 Height="140">
             <DockPanel LastChildFill="True">
+
                 <TextBlock Text="Terminal log" 
                            Foreground="rgb(255,255,255)"
                            FontSize="14"
                            FontFamily="Consolas"
                            Padding="10,10,0,0"
                            DockPanel.Dock="Top"/>
-                <TextBox Background="Transparent"
+
+                <TextBox x:Name="TerminalLogTextBox"
+                         Background="Transparent"
                          BorderThickness="0"
                          IsReadOnly="True"
                          Foreground="rgb(200,200,200)"
@@ -132,6 +155,7 @@
                          VerticalAlignment="Stretch"
                          HorizontalAlignment="Stretch"
                          AcceptsReturn="True"/>
+
             </DockPanel>
         </Border>
     </Grid>
