@@ -110,6 +110,7 @@
             </Grid.ColumnDefinitions>
 
             <Border 
+                x:Name="DropZone"
                 Grid.Column="0"
                 Background="rgb(30,30,30)"
                 CornerRadius="4"

@@ -3,6 +3,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using Avalonia.Platform.Storage;
+using Avalonia.Input;
+using System.Linq;
 
 namespace subtitles_maker
 {
@@ -23,6 +25,77 @@ namespace subtitles_maker
 
             if (OpenOutputFolderButton != null)
                 OpenOutputFolderButton.Click += OpenOutputFolderButton_Click;
+
+            SetupDropZone();
+        }
+
+        private void SetupDropZone()
+        {
+            var dropZone = this.FindControl<Border>("DropZone");
+            if (dropZone != null)
+            {
+                DragDrop.SetAllowDrop(dropZone, true);
+                dropZone.AddHandler(DragDrop.DragOverEvent, DropZone_DragOver);
+                dropZone.AddHandler(DragDrop.DropEvent, DropZone_Drop);
+            }
+        }
+
+        private void DropZone_DragOver(object? sender, DragEventArgs e)
+        {
+            if (e.Data.Contains(DataFormats.Files))
+            {
+                var files = e.Data.GetFiles();
+                if (files != null && files.Any(f => f.Name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)))
+                    e.DragEffects = DragDropEffects.Copy;
+                else
+                    e.DragEffects = DragDropEffects.None;
+            }
+            else
+                e.DragEffects = DragDropEffects.None;
+        }
+
+        private async void DropZone_Drop(object? sender, DragEventArgs e)
+        {
+            try
+            {
+                if (e.Data.Contains(DataFormats.Files))
+                {
+                    var files = e.Data.GetFiles();
+                    if (files != null)
+                    {
+                        foreach (var file in files)
+                        {
+                            var fileName = file.Name;
+                            var filePath = file.Path.LocalPath;
+
+                            if (fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+                            {
+                                LogToTerminal($"Processing file: {fileName}");
+                                
+                                try
+                                {
+                                    string content = await File.ReadAllTextAsync(filePath);
+                                    LogToTerminal($"File content of '{fileName}':");
+                                    LogToTerminal(content);
+                                    LogToTerminal("--- End of file content ---");
+                                }
+                                catch (Exception ex)
+                                {
+                                    LogToTerminal($"Error reading file '{fileName}': {ex.Message}");
+                                }
+                            }
+                            else
+                            {
+                                LogToTerminal($"Skipped file '{fileName}' - Only .txt files are allowed");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogToTerminal($"Error processing dropped files: {ex.Message}");
+            }
         }
 
         private async void ChooseNewModelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
