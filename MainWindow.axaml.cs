@@ -108,17 +108,15 @@ namespace subtitles_maker
         {
             var languageComboBox = this.FindControl<ComboBox>("LanguageComboBox");
             if (languageComboBox?.SelectedItem is ComboBoxItem selectedItem)
-            {
-                return selectedItem.Content?.ToString() ?? "Japanese";
-            }
-            return "Japanese"; 
+                return selectedItem.Content?.ToString() ?? "English";
+            return "English"; 
         }
 
         private async void ChooseNewModelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             try
             {
-                var topLevel = TopLevel.GetTopLevel(this);
+                var topLevel = GetTopLevel(this);
                 if (topLevel == null)
                 {
                     LogToTerminal("Error: Unable to get top level window");
@@ -186,7 +184,7 @@ namespace subtitles_maker
         {
             try
             {
-                var topLevel = TopLevel.GetTopLevel(this);
+                var topLevel = GetTopLevel(this);
                 if (topLevel == null)
                 {
                     LogToTerminal("Error: Unable to get top level window");

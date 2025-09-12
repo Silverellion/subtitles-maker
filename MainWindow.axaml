@@ -145,7 +145,7 @@
                 Foreground="rgb(255,255,255)"
                 BorderBrush="rgb(80,80,80)"
                 BorderThickness="1"
-                SelectedIndex="3">
+                SelectedIndex="0">
 
                 <ComboBoxItem Content="English"/>
                 <ComboBoxItem Content="French"/>

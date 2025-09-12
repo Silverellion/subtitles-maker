@@ -122,7 +122,7 @@ namespace subtitles_maker.services
 
                 OnLogMessage?.Invoke($"Transcribing: {Path.GetFileName(audioFilePath)}");
 
-                string languageCode = LanguageCodes.ContainsKey(language) ? LanguageCodes[language] : "ja";
+                string languageCode = LanguageCodes.ContainsKey(language) ? LanguageCodes[language] : "en";
                 string arguments = $"-m \"{modelPath}\" -f \"{convertedAudioPath}\" -of \"{outputBase}\" --language {languageCode} --output-txt --output-srt";
 
                 OnLogMessage?.Invoke($"Using language: {language} ({languageCode})");
