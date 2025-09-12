@@ -46,7 +46,7 @@ namespace subtitles_maker.utility
                     string relativePath = Path.GetRelativePath(SourceWhisperPath, sourceFile);
                     string targetFile = Path.Combine(TargetWhisperPath, relativePath);
 
-                    string targetDir = Path.GetDirectoryName(targetFile);
+                    string? targetDir = Path.GetDirectoryName(targetFile);
                     if (!string.IsNullOrEmpty(targetDir) && !Directory.Exists(targetDir))
                         Directory.CreateDirectory(targetDir);
 
@@ -63,7 +63,7 @@ namespace subtitles_maker.utility
         {
             string currentDir = AppDomain.CurrentDomain.BaseDirectory;
             
-            DirectoryInfo dir = new DirectoryInfo(currentDir);
+            DirectoryInfo? dir = new DirectoryInfo(currentDir);
             
             while (dir != null && dir.Name != "subtitles-maker")
                 dir = dir.Parent;

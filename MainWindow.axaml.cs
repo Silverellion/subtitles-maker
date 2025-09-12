@@ -16,14 +16,14 @@ namespace subtitles_maker
     public partial class MainWindow : Window
     {
         private static readonly string[] SupportedAudioExtensions = 
-        {
+        [
             ".mp3", ".mp4", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".wma", ".avi", ".mkv", ".mov", ".webm"
-        };
+        ];
 
         private static readonly string[] SupportedArchiveExtensions = 
-        {
+        [
             ".zip", ".rar", ".7z"
-        };
+        ];
 
         public MainWindow()
         {
@@ -51,13 +51,9 @@ namespace subtitles_maker
             {
                 bool whisperReady = InitializeWhisper.EnsureWhisperExists();
                 if (whisperReady)
-                {
                     LogToTerminal("✓ Whisper initialized successfully");
-                }
                 else
-                {
                     LogToTerminal("✗ Failed to initialize Whisper - check if whisper-cli.exe exists in project/whisper folder");
-                }
             }
             catch (Exception ex)
             {
@@ -151,7 +147,7 @@ namespace subtitles_maker
             }
         }
 
-        private async Task<List<string>> ProcessFolder(string folderPath)
+        private Task<List<string>> ProcessFolder(string folderPath)
         {
             var audioFiles = new List<string>();
             
@@ -163,9 +159,7 @@ namespace subtitles_maker
                 {
                     string extension = Path.GetExtension(file).ToLowerInvariant();
                     if (SupportedAudioExtensions.Contains(extension))
-                    {
                         audioFiles.Add(file);
-                    }
                 }
                 
                 LogToTerminal($"Found {audioFiles.Count} audio files in folder");
@@ -175,7 +169,7 @@ namespace subtitles_maker
                 LogToTerminal($"Error processing folder: {ex.Message}");
             }
 
-            return audioFiles;
+            return Task.FromResult(audioFiles);
         }
 
         private async Task<List<string>> ProcessArchive(string archivePath)
@@ -319,7 +313,7 @@ namespace subtitles_maker
         {
             try
             {
-                var topLevel = TopLevel.GetTopLevel(this);
+                var topLevel = GetTopLevel(this);
                 if (topLevel == null)
                 {
                     LogToTerminal("Error: Unable to get top level window");
