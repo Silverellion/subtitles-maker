@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -22,7 +21,16 @@ namespace subtitles_maker.services
             ".zip", ".rar", ".7z"
         ];
 
+        private readonly ArchiveExtractionService _extractionService;
+        private readonly List<string> _extractedDirectories = new();
+
         public event Action<string>? OnLogMessage;
+
+        public FileProcessingService()
+        {
+            _extractionService = new ArchiveExtractionService();
+            _extractionService.OnLogMessage += message => OnLogMessage?.Invoke(message);
+        }
 
         public bool IsValidFile(string fileName)
         {
@@ -34,38 +42,72 @@ namespace subtitles_maker.services
         {
             var audioFiles = new List<string>();
 
-            foreach (var filePath in filePaths)
+            try
             {
-                var fileName = Path.GetFileName(filePath);
-                OnLogMessage?.Invoke($"Processing: {fileName}");
+                foreach (var filePath in filePaths)
+                {
+                    try
+                    {
+                        var fileName = Path.GetFileName(filePath);
+                        OnLogMessage?.Invoke($"Processing: {fileName}");
 
-                if (Directory.Exists(filePath))
-                {
-                    var folderAudioFiles = await ProcessFolder(filePath);
-                    audioFiles.AddRange(folderAudioFiles);
+                        if (Directory.Exists(filePath))
+                        {
+                            var folderAudioFiles = await ProcessFolder(filePath);
+                            audioFiles.AddRange(folderAudioFiles);
+                        }
+                        else if (SupportedAudioExtensions.Contains(Path.GetExtension(fileName).ToLowerInvariant()))
+                        {
+                            audioFiles.Add(filePath);
+                            OnLogMessage?.Invoke($"Added audio file: {fileName}");
+                        }
+                        else if (SupportedArchiveExtensions.Contains(Path.GetExtension(fileName).ToLowerInvariant()))
+                        {
+                            var extractedFiles = await ProcessArchive(filePath);
+                            audioFiles.AddRange(extractedFiles);
+                        }
+                        else
+                        {
+                            OnLogMessage?.Invoke($"Skipped '{fileName}' - Unsupported file type");
+                        }
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        OnLogMessage?.Invoke($"✗ Access denied processing '{Path.GetFileName(filePath)}': {ex.Message}");
+                    }
+                    catch (DirectoryNotFoundException ex)
+                    {
+                        OnLogMessage?.Invoke($"✗ Directory not found '{Path.GetFileName(filePath)}': {ex.Message}");
+                    }
+                    catch (FileNotFoundException ex)
+                    {
+                        OnLogMessage?.Invoke($"✗ File not found '{Path.GetFileName(filePath)}': {ex.Message}");
+                    }
+                    catch (IOException ex)
+                    {
+                        OnLogMessage?.Invoke($"✗ IO error processing '{Path.GetFileName(filePath)}': {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        OnLogMessage?.Invoke($"✗ Unexpected error processing '{Path.GetFileName(filePath)}': {ex.Message}");
+                    }
                 }
-                else if (SupportedAudioExtensions.Contains(Path.GetExtension(fileName).ToLowerInvariant()))
-                {
-                    audioFiles.Add(filePath);
-                }
-                else if (SupportedArchiveExtensions.Contains(Path.GetExtension(fileName).ToLowerInvariant()))
-                {
-                    var extractedFiles = await ProcessArchive(filePath);
-                    audioFiles.AddRange(extractedFiles);
-                }
+
+                if (audioFiles.Count == 0)
+                    OnLogMessage?.Invoke("No supported audio files found");
                 else
-                {
-                    OnLogMessage?.Invoke($"Skipped '{fileName}' - Unsupported file type");
-                }
+                    OnLogMessage?.Invoke($"Found {audioFiles.Count} audio files ready for transcription");
+
+                return audioFiles;
             }
-
-            if (audioFiles.Count == 0)
-                OnLogMessage?.Invoke("No supported audio files found");
-
-            return audioFiles;
+            catch (Exception ex)
+            {
+                OnLogMessage?.Invoke($"✗ Critical error in ProcessDroppedFiles: {ex.Message}");
+                return new List<string>();
+            }
         }
 
-        private Task<List<string>> ProcessFolder(string folderPath)
+        private async Task<List<string>> ProcessFolder(string folderPath)
         {
             var audioFiles = new List<string>();
             
@@ -75,19 +117,38 @@ namespace subtitles_maker.services
                 
                 foreach (var file in files)
                 {
-                    string extension = Path.GetExtension(file).ToLowerInvariant();
-                    if (SupportedAudioExtensions.Contains(extension))
-                        audioFiles.Add(file);
+                    try
+                    {
+                        string extension = Path.GetExtension(file).ToLowerInvariant();
+                        if (SupportedAudioExtensions.Contains(extension))
+                            audioFiles.Add(file);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        OnLogMessage?.Invoke($"✗ Access denied to file '{Path.GetFileName(file)}': {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        OnLogMessage?.Invoke($"✗ Error processing file '{Path.GetFileName(file)}': {ex.Message}");
+                    }
                 }
                 
-                OnLogMessage?.Invoke($"Found {audioFiles.Count} audio files in folder");
+                OnLogMessage?.Invoke($"Found {audioFiles.Count} audio files in folder: {Path.GetFileName(folderPath)}");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                OnLogMessage?.Invoke($"✗ Access denied to folder '{Path.GetFileName(folderPath)}': {ex.Message}");
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                OnLogMessage?.Invoke($"✗ Folder not found '{Path.GetFileName(folderPath)}': {ex.Message}");
             }
             catch (Exception ex)
             {
-                OnLogMessage?.Invoke($"Error processing folder: {ex.Message}");
+                OnLogMessage?.Invoke($"✗ Error processing folder '{Path.GetFileName(folderPath)}': {ex.Message}");
             }
 
-            return Task.FromResult(audioFiles);
+            return audioFiles;
         }
 
         private async Task<List<string>> ProcessArchive(string archivePath)
@@ -96,34 +157,62 @@ namespace subtitles_maker.services
             
             try
             {
-                string extractPath = Path.Combine(Path.GetTempPath(), "subtitles_maker_extract", Path.GetFileNameWithoutExtension(archivePath));
-                
-                if (Directory.Exists(extractPath))
-                    Directory.Delete(extractPath, true);
-                Directory.CreateDirectory(extractPath);
-
-                string extension = Path.GetExtension(archivePath).ToLowerInvariant();
-                
-                if (extension == ".zip")
+                if (!_extractionService.CanExtract(archivePath))
                 {
-                    ZipFile.ExtractToDirectory(archivePath, extractPath);
-                    OnLogMessage?.Invoke($"Extracted ZIP archive to: {extractPath}");
-                }
-                else
-                {
-                    OnLogMessage?.Invoke($"Archive format {extension} requires additional extraction tools - skipping");
+                    string extension = Path.GetExtension(archivePath).ToLowerInvariant();
+                    OnLogMessage?.Invoke($"✗ Unsupported archive format: {extension}");
                     return audioFiles;
                 }
 
-                var extractedAudioFiles = await ProcessFolder(extractPath);
-                audioFiles.AddRange(extractedAudioFiles);
+                string? extractPath = await _extractionService.ExtractArchive(archivePath);
+                
+                if (!string.IsNullOrEmpty(extractPath))
+                {
+                    _extractedDirectories.Add(extractPath);
+                    var extractedAudioFiles = await ProcessFolder(extractPath);
+                    audioFiles.AddRange(extractedAudioFiles);
+                    
+                    OnLogMessage?.Invoke($"Extracted {audioFiles.Count} audio files from archive: {Path.GetFileName(archivePath)}");
+                }
+                else
+                {
+                    OnLogMessage?.Invoke($"✗ Failed to extract archive: {Path.GetFileName(archivePath)}");
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                OnLogMessage?.Invoke($"✗ Access denied extracting archive '{Path.GetFileName(archivePath)}': {ex.Message}");
+            }
+            catch (FileNotFoundException ex)
+            {
+                OnLogMessage?.Invoke($"✗ Archive file not found '{Path.GetFileName(archivePath)}': {ex.Message}");
+            }
+            catch (InvalidDataException ex)
+            {
+                OnLogMessage?.Invoke($"✗ Corrupted or invalid archive '{Path.GetFileName(archivePath)}': {ex.Message}");
             }
             catch (Exception ex)
             {
-                OnLogMessage?.Invoke($"Error extracting archive: {ex.Message}");
+                OnLogMessage?.Invoke($"✗ Error extracting archive '{Path.GetFileName(archivePath)}': {ex.Message}");
             }
 
             return audioFiles;
+        }
+
+        public void CleanupExtractedFiles()
+        {
+            try
+            {
+                foreach (string extractedDir in _extractedDirectories)
+                    _extractionService.CleanupExtractedFiles(extractedDir);
+                _extractedDirectories.Clear();
+                
+                _extractionService.CleanupAllTempExtractions();
+            }
+            catch (Exception ex)
+            {
+                OnLogMessage?.Invoke($"Warning: Error during cleanup: {ex.Message}");
+            }
         }
     }
 }
