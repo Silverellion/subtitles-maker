@@ -53,7 +53,7 @@ namespace subtitles_maker.services
 
                         if (Directory.Exists(filePath))
                         {
-                            var folderAudioFiles = await ProcessFolder(filePath);
+                            var folderAudioFiles = ProcessFolder(filePath);
                             audioFiles.AddRange(folderAudioFiles);
                         }
                         else if (SupportedAudioExtensions.Contains(Path.GetExtension(fileName).ToLowerInvariant()))
@@ -107,7 +107,7 @@ namespace subtitles_maker.services
             }
         }
 
-        private async Task<List<string>> ProcessFolder(string folderPath)
+        private List<string> ProcessFolder(string folderPath)
         {
             var audioFiles = new List<string>();
             
@@ -169,7 +169,7 @@ namespace subtitles_maker.services
                 if (!string.IsNullOrEmpty(extractPath))
                 {
                     _extractedDirectories.Add(extractPath);
-                    var extractedAudioFiles = await ProcessFolder(extractPath);
+                    var extractedAudioFiles = ProcessFolder(extractPath);
                     audioFiles.AddRange(extractedAudioFiles);
                     
                     OnLogMessage?.Invoke($"Extracted {audioFiles.Count} audio files from archive: {Path.GetFileName(archivePath)}");
