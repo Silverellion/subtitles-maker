@@ -1,104 +1,160 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Threading.Tasks;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace subtitles_maker.services
 {
     public class ArchiveExtractionService
     {
+        private static readonly string[] SupportedExtensions = [".zip", ".rar", ".7z"];
+        private readonly string _tempBasePath;
+
         public event Action<string>? OnLogMessage;
 
-        private static readonly Dictionary<string, string> ExtractionTools = new()
+        public ArchiveExtractionService()
         {
-            { ".zip", "built-in" },
-            { ".rar", "7z" },
-            { ".7z", "7z" }
-        };
+            _tempBasePath = Path.Combine(Path.GetTempPath(), "subtitles_maker_extract");
+            EnsureTempDirectoryExists();
+        }
 
-        public bool CanExtract(string filePath)
+        private void EnsureTempDirectoryExists()
         {
-            string extension = Path.GetExtension(filePath).ToLowerInvariant();
-            return ExtractionTools.ContainsKey(extension);
+            try
+            {
+                if (!Directory.Exists(_tempBasePath))
+                    Directory.CreateDirectory(_tempBasePath);
+            }
+            catch (Exception ex)
+            {
+                OnLogMessage?.Invoke($"Warning: Could not create temp directory: {ex.Message}");
+            }
+        }
+
+        public bool CanExtract(string archivePath)
+        {
+            string extension = Path.GetExtension(archivePath).ToLowerInvariant();
+            return SupportedExtensions.Contains(extension);
         }
 
         public async Task<string?> ExtractArchive(string archivePath)
         {
-            try
+            if (!File.Exists(archivePath))
             {
-                string extension = Path.GetExtension(archivePath).ToLowerInvariant();
-                string extractPath = Path.Combine(Path.GetTempPath(), "subtitles_maker_extract", Path.GetFileNameWithoutExtension(archivePath));
-                
-                if (Directory.Exists(extractPath))
-                {
-                    Directory.Delete(extractPath, true);
-                    OnLogMessage?.Invoke($"Cleaned existing extraction directory: {extractPath}");
-                }
-                
-                Directory.CreateDirectory(extractPath);
-                OnLogMessage?.Invoke($"Created extraction directory: {extractPath}");
-
-                bool success = extension switch
-                {
-                    ".zip" => await ExtractZip(archivePath, extractPath),
-                    ".rar" => await ExtractWithSevenZip(archivePath, extractPath),
-                    ".7z" => await ExtractWithSevenZip(archivePath, extractPath),
-                    _ => false
-                };
-
-                if (success)
-                {
-                    OnLogMessage?.Invoke($"✓ Successfully extracted {extension.ToUpper()} archive");
-                    return extractPath;
-                }
-                else
-                {
-                    OnLogMessage?.Invoke($"✗ Failed to extract {extension.ToUpper()} archive");
-                    CleanupExtractedFiles(extractPath);
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                OnLogMessage?.Invoke($"✗ Error extracting archive {Path.GetFileName(archivePath)}: {ex.Message}");
+                OnLogMessage?.Invoke($"✗ Archive file not found: {Path.GetFileName(archivePath)}");
                 return null;
             }
+
+            string extension = Path.GetExtension(archivePath).ToLowerInvariant();
+            string extractPath = CreateExtractionDirectory(archivePath);
+
+            OnLogMessage?.Invoke($"Created extraction directory: {extractPath}");
+
+            bool success = extension switch
+            {
+                ".zip" => await ExtractZip(archivePath, extractPath),
+                ".rar" => await ExtractRar(archivePath, extractPath),
+                ".7z" => await Extract7z(archivePath, extractPath),
+                _ => false
+            };
+
+            if (success)
+            {
+                OnLogMessage?.Invoke($"✓ Successfully extracted archive: {Path.GetFileName(archivePath)}");
+                return extractPath;
+            }
+            else
+            {
+                CleanupExtractedFiles(extractPath);
+                return null;
+            }
+        }
+
+        private string CreateExtractionDirectory(string archivePath)
+        {
+            string archiveName = Path.GetFileNameWithoutExtension(archivePath);
+            string extractPath = Path.Combine(_tempBasePath, archiveName);
+            
+            if (Directory.Exists(extractPath))
+                Directory.Delete(extractPath, true);
+            
+            Directory.CreateDirectory(extractPath);
+            return extractPath;
         }
 
         private async Task<bool> ExtractZip(string archivePath, string extractPath)
         {
             try
             {
-                await Task.Run(() => ZipFile.ExtractToDirectory(archivePath, extractPath));
-                OnLogMessage?.Invoke($"Extracted ZIP using built-in .NET extractor");
+                if (await Try7Zip(archivePath, extractPath, "x"))
+                    return true;
+
+                if (await TryWinRar(archivePath, extractPath))
+                    return true;
+
+                System.IO.Compression.ZipFile.ExtractToDirectory(archivePath, extractPath);
+                OnLogMessage?.Invoke($"✓ Extracted ZIP using built-in .NET library");
                 return true;
             }
             catch (Exception ex)
             {
-                OnLogMessage?.Invoke($"✗ ZIP extraction failed: {ex.Message}");
+                OnLogMessage?.Invoke($"✗ Failed to extract ZIP archive: {ex.Message}");
                 return false;
             }
         }
 
-        private async Task<bool> ExtractWithSevenZip(string archivePath, string extractPath)
+        private async Task<bool> ExtractRar(string archivePath, string extractPath)
         {
-            string sevenZipPath = FindSevenZipExecutable();
-            
-            if (string.IsNullOrEmpty(sevenZipPath))
-            {
-                OnLogMessage?.Invoke($"✗ 7-Zip not found. Please install 7-Zip or place 7z.exe in your PATH");
-                OnLogMessage?.Invoke($"  Download from: https://www.7-zip.org/");
-                return false;
-            }
+            if (await TryWinRar(archivePath, extractPath))
+                return true;
 
+            if (await Try7Zip(archivePath, extractPath, "x"))
+                return true;
+
+            OnLogMessage?.Invoke($"✗ No extraction programs found for RAR files");
+            OnLogMessage?.Invoke($"  Please install WinRAR or 7-Zip to extract RAR archives");
+            return false;
+        }
+
+        private async Task<bool> Extract7z(string archivePath, string extractPath)
+        {
+            if (await Try7Zip(archivePath, extractPath, "x"))
+                return true;
+
+            if (await TryWinRar(archivePath, extractPath))
+                return true;
+
+            OnLogMessage?.Invoke($"✗ No extraction programs found for 7Z files");
+            OnLogMessage?.Invoke($"  Please install 7-Zip or WinRAR to extract 7Z archives");
+            return false;
+        }
+
+        private async Task<bool> Try7Zip(string archivePath, string extractPath, string operation)
+        {
             try
             {
-                OnLogMessage?.Invoke($"Using 7-Zip for extraction: {sevenZipPath}");
-                // 7z x "archive.rar" -o"output_directory" -y
-                string arguments = $"x \"{archivePath}\" -o\"{extractPath}\" -y";
+                string[] possiblePaths = [
+                    "7z.exe",
+                    @"C:\Program Files\7-Zip\7z.exe",
+                    @"C:\Program Files (x86)\7-Zip\7z.exe"
+                ];
 
+                string? sevenZipPath = null;
+                foreach (string path in possiblePaths)
+                {
+                    if (await IsExecutableAvailable(path))
+                    {
+                        sevenZipPath = path;
+                        break;
+                    }
+                }
+
+                if (sevenZipPath == null)
+                    return false;
+
+                string arguments = $"{operation} \"{archivePath}\" -o\"{extractPath}\" -y";
+                
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = sevenZipPath,
@@ -110,38 +166,21 @@ namespace subtitles_maker.services
                 };
 
                 using var process = new Process { StartInfo = processInfo };
-                
-                string output = "";
-                string error = "";
-                
-                process.OutputDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                        output += e.Data + Environment.NewLine;
-                };
-
-                process.ErrorDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                        error += e.Data + Environment.NewLine;
-                };
-
                 process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-
+                
+                string output = await process.StandardOutput.ReadToEndAsync();
+                string error = await process.StandardError.ReadToEndAsync();
+                
                 await process.WaitForExitAsync();
-
+                
                 if (process.ExitCode == 0)
                 {
-                    OnLogMessage?.Invoke($"7-Zip extraction completed successfully");
+                    OnLogMessage?.Invoke($"✓ Extracted using 7-Zip");
                     return true;
                 }
                 else
                 {
-                    OnLogMessage?.Invoke($"✗ 7-Zip extraction failed (Exit code: {process.ExitCode})");
-                    if (!string.IsNullOrEmpty(error))
-                        OnLogMessage?.Invoke($"  Error: {error.Trim()}");
+                    OnLogMessage?.Invoke($"✗ 7-Zip extraction failed: {error}");
                     return false;
                 }
             }
@@ -152,71 +191,110 @@ namespace subtitles_maker.services
             }
         }
 
-        private string FindSevenZipExecutable()
+        private async Task<bool> TryWinRar(string archivePath, string extractPath)
         {
-            // Check common locations for 7-Zip
-            string[] possiblePaths = {
-                "7z.exe",                                                              // In PATH
-                "7zip\\7z.exe",                                                        // In project 7zip folder
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "7z.exe"),         // In application directory
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "7zip", "7z.exe"), // In app 7zip folder
-                @"C:\Program Files\7-Zip\7z.exe",                                      // Standard installation path
-                @"C:\Program Files (x86)\7-Zip\7z.exe",                                // 32-bit installation path
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "7-Zip", "7z.exe"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "7-Zip", "7z.exe")
-            };
-
-            foreach (string path in possiblePaths)
-            {
-                try
-                {
-                    if (File.Exists(path))
-                        return path;
-                    
-                    if (path == "7z.exe")
-                    {
-                        using var process = new Process
-                        {
-                            StartInfo = new ProcessStartInfo
-                            {
-                                FileName = "7z",
-                                Arguments = "",
-                                UseShellExecute = false,
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                CreateNoWindow = true
-                            }
-                        };
-                        
-                        process.Start();
-                        process.WaitForExit(3000); // 3 second timeout
-                        
-                        if (process.ExitCode == 0 || process.ExitCode == 1) // 7z returns 1 for help
-                            return "7z";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    OnLogMessage?.Invoke($"Warning: Could not check path {path}: {ex.Message}");
-                }
-            }
-
-            return string.Empty;
-        }
-
-        public void CleanupExtractedFiles(string? extractPath)
-        {
-            if (string.IsNullOrEmpty(extractPath) || !Directory.Exists(extractPath))
-                return;
-
             try
             {
-                Directory.Delete(extractPath, true);
-                OnLogMessage?.Invoke($"Cleaned up extracted files: {extractPath}");
+                string[] possiblePaths = [
+                    "unrar.exe", 
+                    "winrar.exe",
+                    @"C:\Program Files\WinRAR\unrar.exe",
+                    @"C:\Program Files (x86)\WinRAR\unrar.exe",
+                    @"C:\Program Files\WinRAR\winrar.exe",
+                    @"C:\Program Files (x86)\WinRAR\winrar.exe"
+                ];
+
+                string? winrarPath = null;
+                string command = "";
+                
+                foreach (string path in possiblePaths)
+                {
+                    if (await IsExecutableAvailable(path))
+                    {
+                        winrarPath = path;
+                        command = path.Contains("unrar") ? "x" : "x";
+                        break;
+                    }
+                }
+
+                if (winrarPath == null)
+                    return false;
+
+                string arguments = $"{command} \"{archivePath}\" \"{extractPath}\\\" -y";
+                
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = winrarPath,
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = new Process { StartInfo = processInfo };
+                process.Start();
+                
+                string output = await process.StandardOutput.ReadToEndAsync();
+                string error = await process.StandardError.ReadToEndAsync();
+                
+                await process.WaitForExitAsync();
+                
+                if (process.ExitCode == 0)
+                {
+                    OnLogMessage?.Invoke($"✓ Extracted using WinRAR");
+                    return true;
+                }
+                else
+                {
+                    OnLogMessage?.Invoke($"✗ WinRAR extraction failed: {error}");
+                    return false;
+                }
             }
             catch (Exception ex)
             {
-                OnLogMessage?.Invoke($"Warning: Could not clean up extracted files {extractPath}: {ex.Message}");
+                OnLogMessage?.Invoke($"✗ Error running WinRAR: {ex.Message}");
+                return false;
+            }
+        }
+
+        private async Task<bool> IsExecutableAvailable(string executablePath)
+        {
+            try
+            {
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = executablePath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = new Process { StartInfo = processInfo };
+                process.Start();
+                await process.WaitForExitAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public void CleanupExtractedFiles(string extractPath)
+        {
+            try
+            {
+                if (Directory.Exists(extractPath))
+                {
+                    Directory.Delete(extractPath, true);
+                    OnLogMessage?.Invoke($"Cleaned up extracted files: {extractPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                OnLogMessage?.Invoke($"Warning: Could not cleanup directory {extractPath}: {ex.Message}");
             }
         }
 
@@ -224,16 +302,25 @@ namespace subtitles_maker.services
         {
             try
             {
-                string tempExtractionDir = Path.Combine(Path.GetTempPath(), "subtitles_maker_extract");
-                if (Directory.Exists(tempExtractionDir))
+                if (Directory.Exists(_tempBasePath))
                 {
-                    Directory.Delete(tempExtractionDir, true);
-                    OnLogMessage?.Invoke("Cleaned up all temporary extraction files");
+                    var directories = Directory.GetDirectories(_tempBasePath);
+                    foreach (string dir in directories)
+                    {
+                        try
+                        {
+                            Directory.Delete(dir, true);
+                        }
+                        catch (Exception ex)
+                        {
+                            OnLogMessage?.Invoke($"Warning: Could not cleanup directory {dir}: {ex.Message}");
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
-                OnLogMessage?.Invoke($"Warning: Could not clean up temp extraction directory: {ex.Message}");
+                OnLogMessage?.Invoke($"Warning: Error during temp cleanup: {ex.Message}");
             }
         }
     }
