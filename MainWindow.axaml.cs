@@ -109,9 +109,9 @@ namespace subtitles_maker
             var languageComboBox = this.FindControl<ComboBox>("LanguageComboBox");
             if (languageComboBox?.SelectedItem is ComboBoxItem selectedItem)
             {
-                return selectedItem.Content?.ToString() ?? "English";
+                return selectedItem.Content?.ToString() ?? "Japanese";
             }
-            return "English"; 
+            return "Japanese"; 
         }
 
         private async void ChooseNewModelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

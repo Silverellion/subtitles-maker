@@ -18,7 +18,16 @@ namespace subtitles_maker.services
             { "Spanish", "es" }
         };
 
+        private readonly AudioConversionService _audioConversionService;
+        private readonly List<string> _tempConvertedFiles = new();
+
         public event Action<string>? OnLogMessage;
+
+        public WhisperService()
+        {
+            _audioConversionService = new AudioConversionService();
+            _audioConversionService.OnLogMessage += message => OnLogMessage?.Invoke(message);
+        }
 
         public static bool IsWhisperAvailable()
         {
@@ -60,10 +69,18 @@ namespace subtitles_maker.services
             OnLogMessage?.Invoke($"Starting transcription of {audioFiles.Count} files...");
 
             bool allSuccessful = true;
-            foreach (string audioFile in audioFiles)
+            try
             {
-                bool success = await TranscribeAudioFile(audioFile, whisperExe, modelPath, outputPath, language);
-                if (!success) allSuccessful = false;
+                foreach (string audioFile in audioFiles)
+                {
+                    bool success = await TranscribeAudioFile(audioFile, whisperExe, modelPath, outputPath, language);
+                    if (!success)
+                        allSuccessful = false;
+                }
+            }
+            finally
+            {
+                CleanupTempFiles();
             }
 
             OnLogMessage?.Invoke("Transcription completed!");
@@ -89,15 +106,23 @@ namespace subtitles_maker.services
 
         private async Task<bool> TranscribeAudioFile(string audioFilePath, string whisperExe, string modelPath, string outputPath, string language)
         {
+            string convertedAudioPath = audioFilePath;
+
             try
             {
-                string fileName = Path.GetFileNameWithoutExtension(audioFilePath);
-                string outputBase = Path.Combine(outputPath, fileName);
+                convertedAudioPath = await _audioConversionService.ConvertToWavIfNeeded(audioFilePath);
+                
+                if (convertedAudioPath != audioFilePath)
+                    _tempConvertedFiles.Add(convertedAudioPath);
+
+                // Use original filename for output (not the converted temp file name)
+                string originalFileName = Path.GetFileNameWithoutExtension(audioFilePath);
+                string outputBase = Path.Combine(outputPath, originalFileName);
 
                 OnLogMessage?.Invoke($"Transcribing: {Path.GetFileName(audioFilePath)}");
 
-                string languageCode = LanguageCodes.ContainsKey(language) ? LanguageCodes[language] : "en";
-                string arguments = $"-m \"{modelPath}\" -f \"{audioFilePath}\" -of \"{outputBase}\" --language {languageCode} --output-txt --output-srt";
+                string languageCode = LanguageCodes.ContainsKey(language) ? LanguageCodes[language] : "ja";
+                string arguments = $"-m \"{modelPath}\" -f \"{convertedAudioPath}\" -of \"{outputBase}\" --language {languageCode} --output-txt --output-srt";
 
                 OnLogMessage?.Invoke($"Using language: {language} ({languageCode})");
 
@@ -157,6 +182,25 @@ namespace subtitles_maker.services
                 OnLogMessage?.Invoke($"Error transcribing {Path.GetFileName(audioFilePath)}: {ex.Message}");
                 return false;
             }
+        }
+
+        private void CleanupTempFiles()
+        {
+            foreach (string tempFile in _tempConvertedFiles)
+            {
+                try
+                {
+                    if (File.Exists(tempFile))
+                        File.Delete(tempFile);
+                }
+                catch (Exception ex)
+                {
+                    OnLogMessage?.Invoke($"Warning: Could not delete temp file {tempFile}: {ex.Message}");
+                }
+            }
+            _tempConvertedFiles.Clear();
+            
+            _audioConversionService.CleanupTempFiles();
         }
     }
 }
