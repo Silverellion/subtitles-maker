@@ -5,15 +5,38 @@ using System.IO;
 using Avalonia.Platform.Storage;
 using Avalonia.Input;
 using System.Linq;
+using Avalonia.Threading;
+using subtitles_maker.services;
 
 namespace subtitles_maker
 {
     public partial class MainWindow : Window
     {
+        private readonly WhisperService _whisperService;
+        private readonly FileProcessingService _fileProcessingService;
+
         public MainWindow()
         {
             InitializeComponent();
+            
+            _whisperService = new WhisperService();
+            _fileProcessingService = new FileProcessingService();
+            
+            _whisperService.OnLogMessage += message => Dispatcher.UIThread.InvokeAsync(() => LogToTerminal(message));
+            _fileProcessingService.OnLogMessage += message => Dispatcher.UIThread.InvokeAsync(() => LogToTerminal(message));
+            
+            InitializeApplication();
+            SetupEventHandlers();
+            SetupDropZone();
+        }
 
+        private void InitializeApplication()
+        {
+            _whisperService.EnsureWhisperInitialized();
+        }
+
+        private void SetupEventHandlers()
+        {
             if (ChooseNewModelButton != null)
                 ChooseNewModelButton.Click += ChooseNewModelButton_Click;
 
@@ -25,8 +48,6 @@ namespace subtitles_maker
 
             if (OpenOutputFolderButton != null)
                 OpenOutputFolderButton.Click += OpenOutputFolderButton_Click;
-
-            SetupDropZone();
         }
 
         private void SetupDropZone()
@@ -45,7 +66,7 @@ namespace subtitles_maker
             if (e.Data.Contains(DataFormats.Files))
             {
                 var files = e.Data.GetFiles();
-                if (files != null && files.Any(f => f.Name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)))
+                if (files != null && files.Any(f => _fileProcessingService.IsValidFile(f.Name) || Directory.Exists(f.Path.LocalPath)))
                     e.DragEffects = DragDropEffects.Copy;
                 else
                     e.DragEffects = DragDropEffects.None;
@@ -63,31 +84,16 @@ namespace subtitles_maker
                     var files = e.Data.GetFiles();
                     if (files != null)
                     {
-                        foreach (var file in files)
-                        {
-                            var fileName = file.Name;
-                            var filePath = file.Path.LocalPath;
+                        var filePaths = files.Select(f => f.Path.LocalPath).ToList();
+                        var audioFiles = await _fileProcessingService.ProcessDroppedFiles(filePaths);
 
-                            if (fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
-                            {
-                                LogToTerminal($"Processing file: {fileName}");
-                                
-                                try
-                                {
-                                    string content = await File.ReadAllTextAsync(filePath);
-                                    LogToTerminal($"File content of '{fileName}':");
-                                    LogToTerminal(content);
-                                    LogToTerminal("--- End of file content ---");
-                                }
-                                catch (Exception ex)
-                                {
-                                    LogToTerminal($"Error reading file '{fileName}': {ex.Message}");
-                                }
-                            }
-                            else
-                            {
-                                LogToTerminal($"Skipped file '{fileName}' - Only .txt files are allowed");
-                            }
+                        if (audioFiles.Count > 0)
+                        {
+                            string modelPath = ModelPathTextBox?.Text ?? "";
+                            string outputPath = OutputPathTextBox?.Text ?? "";
+                            string selectedLanguage = GetSelectedLanguage();
+
+                            await _whisperService.TranscribeAudioFiles(audioFiles, modelPath, outputPath, selectedLanguage);
                         }
                     }
                 }
@@ -98,11 +104,19 @@ namespace subtitles_maker
             }
         }
 
+        private string GetSelectedLanguage()
+        {
+            var languageComboBox = this.FindControl<ComboBox>("LanguageComboBox");
+            if (languageComboBox?.SelectedItem is ComboBoxItem selectedItem)
+                return selectedItem.Content?.ToString() ?? "English";
+            return "English"; 
+        }
+
         private async void ChooseNewModelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
             try
             {
-                var topLevel = TopLevel.GetTopLevel(this);
+                var topLevel = GetTopLevel(this);
                 if (topLevel == null)
                 {
                     LogToTerminal("Error: Unable to get top level window");
@@ -128,8 +142,11 @@ namespace subtitles_maker
                 if (files.Count > 0)
                 {
                     var filePath = files[0].Path.LocalPath;
-                    ModelPathTextBox.Text = filePath;
-                    LogToTerminal($"Model path set to: {filePath}");
+                    if (ModelPathTextBox != null)
+                    {
+                        ModelPathTextBox.Text = filePath;
+                        LogToTerminal($"Model path set to: {filePath}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -142,7 +159,7 @@ namespace subtitles_maker
         {
             try
             {
-                string? modelPath = ModelPathTextBox.Text;
+                string? modelPath = ModelPathTextBox?.Text;
                 if (!string.IsNullOrEmpty(modelPath) && File.Exists(modelPath))
                 {
                     string directory = Path.GetDirectoryName(modelPath) ?? string.Empty;
@@ -167,7 +184,7 @@ namespace subtitles_maker
         {
             try
             {
-                var topLevel = TopLevel.GetTopLevel(this);
+                var topLevel = GetTopLevel(this);
                 if (topLevel == null)
                 {
                     LogToTerminal("Error: Unable to get top level window");
@@ -183,8 +200,11 @@ namespace subtitles_maker
                 if (folders.Count > 0)
                 {
                     var folderPath = folders[0].Path.LocalPath;
-                    OutputPathTextBox.Text = folderPath;
-                    LogToTerminal($"Output path set to: {folderPath}");
+                    if (OutputPathTextBox != null)
+                    {
+                        OutputPathTextBox.Text = folderPath;
+                        LogToTerminal($"Output path set to: {folderPath}");
+                    }
                 }
             }
             catch (Exception ex)
@@ -197,7 +217,7 @@ namespace subtitles_maker
         {
             try
             {
-                string? outputPath = OutputPathTextBox.Text;
+                string? outputPath = OutputPathTextBox?.Text;
                 if (!string.IsNullOrEmpty(outputPath) && Directory.Exists(outputPath))
                 {
                     OpenFolder(outputPath);
@@ -245,6 +265,12 @@ namespace subtitles_maker
 
         private void LogToTerminal(string message)
         {
+            if (!Dispatcher.UIThread.CheckAccess())
+            {
+                Dispatcher.UIThread.InvokeAsync(() => LogToTerminal(message));
+                return;
+            }
+
             if (TerminalLogTextBox != null)
             {
                 string timestamp = DateTime.Now.ToString("HH:mm:ss");
