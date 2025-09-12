@@ -60,10 +60,12 @@ echo Build output: .\bin\Release\net8.0\
 echo Published output: .\publish\
 echo.
 
-REM Ask if user wants to open the output folder
-set /p "OPEN_FOLDER=Open output folder? (y/n): "
-if /i "%OPEN_FOLDER%"=="y" (
+REM Ask which output folder the user wants to open
+set /p "OPEN_FOLDER=Open output folder? (B)uild, (P)ublish, (N)one [B/P/N]: "
+if /i "%OPEN_FOLDER%"=="b" (
     start explorer "%CD%\bin\Release\net8.0"
+) else if /i "%OPEN_FOLDER%"=="p" (
+    start explorer "%CD%\publish"
 )
 
 echo.
