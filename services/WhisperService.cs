@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using System.Text;
 using subtitles_maker.utility;
 
 namespace subtitles_maker.services
@@ -134,7 +135,11 @@ namespace subtitles_maker.services
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Path.GetDirectoryName(whisperExe)
+                    WorkingDirectory = Path.GetDirectoryName(whisperExe),
+
+                    // Needed for languages like Japanese, Chinese, Russian, Korean...
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding = Encoding.UTF8
                 };
 
                 using var process = new Process { StartInfo = processInfo };
