@@ -21,7 +21,6 @@ namespace subtitles_maker.services
 
         private readonly AudioConversionService _audioConversionService;
         private readonly List<string> _tempConvertedFiles = new();
-
         public event Action<string>? OnLogMessage;
 
         public WhisperService()

@@ -11,7 +11,10 @@ namespace subtitles_maker.services
     {
         private static readonly string[] SupportedAudioExtensions = 
         [
-            ".mp3", ".mp4", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".wma", ".avi", ".mkv", ".mov", ".webm"
+            ".mp3", ".mp4", ".wav",
+            ".m4a", ".aac", ".flac",
+            ".ogg", ".wma", ".avi",
+            ".mkv", ".mov", ".webm"
         ];
 
         private static readonly string[] SupportedArchiveExtensions = 
@@ -57,9 +60,7 @@ namespace subtitles_maker.services
             }
 
             if (audioFiles.Count == 0)
-            {
                 OnLogMessage?.Invoke("No supported audio files found");
-            }
 
             return audioFiles;
         }
