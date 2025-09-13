@@ -157,7 +157,7 @@ namespace subtitles_maker.services
             
             try
             {
-                if (!_extractionService.CanExtract(archivePath))
+                if (ArchiveExtractionService.CanExtract(archivePath))
                 {
                     string extension = Path.GetExtension(archivePath).ToLowerInvariant();
                     OnLogMessage?.Invoke($"✗ Unsupported archive format: {extension}");
