@@ -32,6 +32,7 @@
                                 Margin="0,0,5,0"
                                 Background="Transparent"
                                 BorderThickness="0"
+                                Cursor="Hand"
                                 ToolTip.Tip="Open model folder">
                             <Image 
                                 Source="avares://subtitles-maker/assets/icons/folder-open.png" 
@@ -45,6 +46,7 @@
                             Margin="0,0,5,0"
                             Background="Transparent"
                             BorderThickness="0"
+                            Cursor="Hand"
                             ToolTip.Tip="Choose new model">
                             <Image 
                                 Source="avares://subtitles-maker/assets/icons/folder-new.png" 
@@ -78,6 +80,7 @@
                             Margin="0,0,5,0"
                             Background="Transparent"
                             BorderThickness="0"
+                            Cursor="Hand"
                             ToolTip.Tip="Open output folder">
                             <Image
                                 Source="avares://subtitles-maker/assets/icons/folder-open.png"
@@ -91,6 +94,7 @@
                             Margin="0,0,5,0"
                             Background="Transparent"
                             BorderThickness="0"
+                            Cursor="Hand"
                             ToolTip.Tip="Choose new output folder">
                             <Image 
                                 Source="avares://subtitles-maker/assets/icons/folder-new.png" 
@@ -145,6 +149,7 @@
                 Foreground="rgb(255,255,255)"
                 BorderBrush="rgb(80,80,80)"
                 BorderThickness="1"
+                Cursor="Hand"
                 SelectedIndex="0">
 
                 <ComboBoxItem Content="English"/>
