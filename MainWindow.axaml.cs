@@ -48,7 +48,11 @@ namespace subtitles_maker
 
             if (OpenOutputFolderButton != null)
                 OpenOutputFolderButton.Click += OpenOutputFolderButton_Click;
+
+            if (DropZoneButton != null)
+                DropZoneButton.Click += DropZoneButton_Click;
         }
+
 
         private void SetupDropZone()
         {
@@ -103,13 +107,68 @@ namespace subtitles_maker
                 LogToTerminal($"Error processing dropped files: {ex.Message}");
             }
         }
+        
+        private async void DropZoneButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        {
+            try
+            {
+                var topLevel = GetTopLevel(this);
+                if (topLevel == null)
+                {
+                    LogToTerminal("Error: Unable to get top level window");
+                    return;
+                }
+
+                var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = "Select Audio Files",
+                    AllowMultiple = true,
+                    FileTypeFilter =
+                    [
+                        new FilePickerFileType("Audio Files")
+                        {
+                            Patterns = [ "*.mp3", "*.mp4", "*.wav", "*.m4a", "*.aac", "*.flac", "*.ogg", "*.wma", "*.avi", "*.mkv", "*.mov", "*.webm" ]
+                        },
+                        new FilePickerFileType("Archive Files")
+                        {
+                            Patterns = [ "*.zip", "*.rar", "*.7z" ]
+                        },
+                        new FilePickerFileType("All Files")
+                        {
+                            Patterns = [ "*.*" ]
+                        }
+                    ]
+                });
+
+                if (files.Count > 0)
+                {
+                    var filePaths = files.Select(f => f.Path.LocalPath).ToList();
+                    LogToTerminal($"Selected {filePaths.Count} file(s) for processing");
+                    
+                    var audioFiles = await _fileProcessingService.ProcessDroppedFiles(filePaths);
+
+                    if (audioFiles.Count > 0)
+                    {
+                        string modelPath = ModelPathTextBox?.Text ?? "";
+                        string outputPath = OutputPathTextBox?.Text ?? "";
+                        string selectedLanguage = GetSelectedLanguage();
+
+                        await _whisperService.TranscribeAudioFiles(audioFiles, modelPath, outputPath, selectedLanguage);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogToTerminal($"Error selecting files: {ex.Message}");
+            }
+        }
 
         private string GetSelectedLanguage()
         {
             var languageComboBox = this.FindControl<ComboBox>("LanguageComboBox");
             if (languageComboBox?.SelectedItem is ComboBoxItem selectedItem)
                 return selectedItem.Content?.ToString() ?? "English";
-            return "English"; 
+            return "English";
         }
 
         private async void ChooseNewModelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
