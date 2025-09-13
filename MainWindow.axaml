@@ -118,8 +118,6 @@
                 Grid.Column="0"
                 Background="rgb(30,30,30)"
                 CornerRadius="4"
-                BorderBrush="rgb(80,80,80)"
-                BorderThickness="1"
                 Margin="0,0,10,0"
                 Cursor="Hand"
                 Padding="0"
@@ -140,6 +138,8 @@
                 <Border 
                     x:Name="DropZone"
                     Background="Transparent"
+                    BorderBrush="rgb(80,80,80)"
+                    BorderThickness="1"
                     CornerRadius="4">
 
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
