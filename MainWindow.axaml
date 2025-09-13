@@ -32,6 +32,7 @@
                                 Margin="0,0,5,0"
                                 Background="Transparent"
                                 BorderThickness="0"
+                                Cursor="Hand"
                                 ToolTip.Tip="Open model folder">
                             <Image 
                                 Source="avares://subtitles-maker/assets/icons/folder-open.png" 
@@ -45,6 +46,7 @@
                             Margin="0,0,5,0"
                             Background="Transparent"
                             BorderThickness="0"
+                            Cursor="Hand"
                             ToolTip.Tip="Choose new model">
                             <Image 
                                 Source="avares://subtitles-maker/assets/icons/folder-new.png" 
@@ -78,6 +80,7 @@
                             Margin="0,0,5,0"
                             Background="Transparent"
                             BorderThickness="0"
+                            Cursor="Hand"
                             ToolTip.Tip="Open output folder">
                             <Image
                                 Source="avares://subtitles-maker/assets/icons/folder-open.png"
@@ -91,6 +94,7 @@
                             Margin="0,0,5,0"
                             Background="Transparent"
                             BorderThickness="0"
+                            Cursor="Hand"
                             ToolTip.Tip="Choose new output folder">
                             <Image 
                                 Source="avares://subtitles-maker/assets/icons/folder-new.png" 
@@ -109,30 +113,52 @@
                 <ColumnDefinition Width="200" />
             </Grid.ColumnDefinitions>
 
-            <Border 
-                x:Name="DropZone"
+            <Button 
+                x:Name="DropZoneButton"
                 Grid.Column="0"
                 Background="rgb(30,30,30)"
                 CornerRadius="4"
-                BorderBrush="rgb(80,80,80)"
-                BorderThickness="1"
-                Margin="0,0,10,0">
+                Margin="0,0,10,0"
+                Cursor="Hand"
+                Padding="0"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Stretch"
+                ToolTip.Tip="Click to select audio files or drag and drop them here">
 
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                    <TextBlock 
-                        Text="+" 
-                        FontSize="50" 
-                        Foreground="rgb(255,255,255)"
-                        HorizontalAlignment="Center"/>
+                <Button.Styles>
+                    <Style Selector="Button:pointerover">
+                        <Setter Property="Background" Value="rgb(50,50,50)" />
+                        <Setter Property="BorderBrush" Value="rgb(100,100,100)" />
+                    </Style>
+                    <Style Selector="Button:pressed">
+                        <Setter Property="Background" Value="rgb(40,40,40)" />
+                    </Style>
+                </Button.Styles>
 
-                    <TextBlock 
-                        Text="Drag Your mp3/mp4 or folder containing them here"
-                        FontSize="14"
-                        Foreground="rgb(200,200,200)"
-                        Margin="0,10,0,0"
-                        HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+                <Border 
+                    x:Name="DropZone"
+                    Background="Transparent"
+                    BorderBrush="rgb(80,80,80)"
+                    BorderThickness="1"
+                    CornerRadius="4">
+
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock 
+                            Text="+" 
+                            FontSize="50" 
+                            Foreground="rgb(255,255,255)"
+                            HorizontalAlignment="Center"/>
+
+                        <TextBlock 
+                            Text="Click to select or drag your mp3/mp4 files here"
+                            FontSize="14"
+                            Foreground="rgb(200,200,200)"
+                            Margin="0,10,0,0"
+                            HorizontalAlignment="Center"
+                            TextAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </Button>
 
             <ComboBox 
                 x:Name="LanguageComboBox"
@@ -145,6 +171,7 @@
                 Foreground="rgb(255,255,255)"
                 BorderBrush="rgb(80,80,80)"
                 BorderThickness="1"
+                Cursor="Hand"
                 SelectedIndex="0">
 
                 <ComboBoxItem Content="English"/>

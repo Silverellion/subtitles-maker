@@ -32,7 +32,7 @@ namespace subtitles_maker.services
             }
         }
 
-        public bool CanExtract(string archivePath)
+        public static bool CanExtract(string archivePath)
         {
             string extension = Path.GetExtension(archivePath).ToLowerInvariant();
             return SupportedExtensions.Contains(extension);
