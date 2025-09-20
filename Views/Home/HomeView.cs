@@ -8,14 +8,14 @@ using System.Linq;
 using Avalonia.Threading;
 using subtitles_maker.services;
 
-namespace subtitles_maker
+namespace subtitles_maker.Views.Home
 {
-    public partial class MainWindow : Window
+    public partial class HomeView : UserControl
     {
         private readonly WhisperService _whisperService;
         private readonly FileProcessingService _fileProcessingService;
 
-        public MainWindow()
+        public HomeView()
         {
             InitializeComponent();
             
@@ -112,7 +112,7 @@ namespace subtitles_maker
         {
             try
             {
-                var topLevel = GetTopLevel(this);
+                var topLevel = TopLevel.GetTopLevel(this);
                 if (topLevel == null)
                 {
                     LogToTerminal("Error: Unable to get top level window");
@@ -175,7 +175,7 @@ namespace subtitles_maker
         {
             try
             {
-                var topLevel = GetTopLevel(this);
+                var topLevel = TopLevel.GetTopLevel(this);
                 if (topLevel == null)
                 {
                     LogToTerminal("Error: Unable to get top level window");
@@ -243,7 +243,7 @@ namespace subtitles_maker
         {
             try
             {
-                var topLevel = GetTopLevel(this);
+                var topLevel = TopLevel.GetTopLevel(this);
                 if (topLevel == null)
                 {
                     LogToTerminal("Error: Unable to get top level window");

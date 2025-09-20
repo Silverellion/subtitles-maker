@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="subtitles_maker.Views.Sidebar.Sidebar"
+             Width="50"
+             MinWidth="50"
+             Background="Transparent">
+
+    <Border x:Name="Root" Background="rgb(0,0,0)" Padding="5" CornerRadius="8">
+        <StackPanel>
+            <Button 
+                x:Name="MenuButton"
+                Background="Transparent"
+                BorderThickness="0"
+                Cursor="Hand">
+
+                <StackPanel>
+                    <Image 
+                        Source="avares://subtitles-maker/assets/icons/menu.png" 
+                        Width="35"
+                        Height="35"/>
+                </StackPanel>
+            </Button>
+
+            <StackPanel Orientation="Vertical">
+                <Button 
+                    x:Name="HomeButton"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand">
+
+                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        <Image 
+                            Source="avares://subtitles-maker/assets/icons/home.png" 
+                            Width="35"
+                            Height="35"/>
+                        <TextBlock 
+                            x:Name="HomeLabel" 
+                            Foreground="White" 
+                            VerticalAlignment="Center" 
+                            FontSize="16" 
+                            Text="Home" 
+                            Opacity="0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button 
+                    x:Name="ModelsButton"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Cursor="Hand">
+                    <StackPanel 
+                        Orientation="Horizontal" 
+                        Spacing="5" 
+                        VerticalAlignment="Center">
+                        <Image 
+                            Source="avares://subtitles-maker/assets/icons/layers.png" 
+                            Width="35"
+                            Height="35"/>
+                        <TextBlock 
+                            x:Name="ModelsLabel" 
+                            Foreground="White" 
+                            VerticalAlignment="Center" 
+                            FontSize="16" 
+                            Text="Models" 
+                            Opacity="0"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+
+        </StackPanel>
+    </Border>
+</UserControl>

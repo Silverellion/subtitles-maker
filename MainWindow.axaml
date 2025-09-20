@@ -1,0 +1,20 @@
+<Window 
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sidebar="clr-namespace:subtitles_maker.Views.Sidebar"
+    xmlns:home="clr-namespace:subtitles_maker.Views.Home"
+    x:Class="subtitles_maker.MainWindow"
+    Title="subtitles_maker"
+    Background="rgb(30,30,30)"
+    Width="1000" Height="600"
+    MinWidth="750" MinHeight="450"
+    FontFamily="Inter">
+
+    <Grid x:Name="RootGrid" ColumnDefinitions="Auto,1*">
+        <sidebar:Sidebar x:Name="AppSidebar" Grid.Column="0" />
+
+        <Border Grid.Column="1" Background="Transparent">
+            <home:HomeView />
+        </Border>
+    </Grid>
+</Window>
