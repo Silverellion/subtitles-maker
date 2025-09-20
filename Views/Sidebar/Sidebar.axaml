@@ -11,8 +11,8 @@
         </Transitions>
     </UserControl.Transitions>
 
-    <Border x:Name="Root" Background="rgb(0,0,0)" Padding="10" CornerRadius="8">
-        <StackPanel Spacing="18" HorizontalAlignment="Left" VerticalAlignment="Stretch">
+    <Border x:Name="Root" Background="rgb(0,0,0)">
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Left">
 
             <Button 
                 x:Name="MenuButton"
@@ -21,81 +21,111 @@
                 Cursor="Hand"
                 ToolTip.Tip="Expand"
                 HorizontalAlignment="Left"
-                Padding="6">
-                <StackPanel>
+                Margin="0,0,0,-3"
+                Padding="10,13,5,5"
+                Width="150">
+
+                 <StackPanel 
+                    Orientation="Horizontal" 
+                    Spacing="10" 
+                    VerticalAlignment="Center" 
+                    HorizontalAlignment="Left">
+
                     <Image 
                         Source="avares://subtitles-maker/assets/icons/menu.png" 
                         Width="30"
                         Height="30"/>
+                    <TextBlock 
+                        x:Name="MenuLabel" 
+                        Foreground="White" 
+                        VerticalAlignment="Center" 
+                        FontSize="16" 
+                        Text="Minimize" 
+                        Opacity="0">
+                        <TextBlock.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                            </Transitions>
+                        </TextBlock.Transitions>
+                    </TextBlock>
                 </StackPanel>
             </Button>
 
-            <StackPanel Orientation="Vertical" Spacing="8" HorizontalAlignment="Left">
-                <Button 
-                    x:Name="HomeButton"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Cursor="Hand"
-                    ToolTip.Tip="Home"
-                    HorizontalAlignment="Left"
-                    Padding="6">
+            <Button 
+                x:Name="HomeButton"
+                Background="Transparent"
+                BorderThickness="0"
+                Cursor="Hand"
+                ToolTip.Tip="Home"
+                HorizontalAlignment="Left"
+                Margin="0,5,0,0"               
+                Padding="10,5,5,5"
+                Width="150">
 
-                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" HorizontalAlignment="Left">
-                        <Image 
-                            Source="avares://subtitles-maker/assets/icons/home.png" 
-                            Width="30"
-                            Height="30"/>
-                        <TextBlock 
-                            x:Name="HomeLabel" 
-                            Foreground="White" 
-                            VerticalAlignment="Center" 
-                            FontSize="16" 
-                            Text="Home" 
-                            Opacity="0">
-                            <TextBlock.Transitions>
-                                <Transitions>
-                                    <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
-                                </Transitions>
-                            </TextBlock.Transitions>
-                        </TextBlock>
-                    </StackPanel>
-                </Button>
+                <StackPanel
+                    Orientation="Horizontal" 
+                    Spacing="10" 
+                    VerticalAlignment="Center" 
+                    HorizontalAlignment="Left">
 
-                <Button 
-                    x:Name="ModelsButton"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Cursor="Hand"
-                    ToolTip.Tip = "Models"
-                    HorizontalAlignment="Left"
-                    Padding="6">
-                    <StackPanel 
-                        Orientation="Horizontal" 
-                        Spacing="10" 
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Left">
-                        <Image 
-                            Source="avares://subtitles-maker/assets/icons/layers.png" 
-                            Width="30"
-                            Height="30"/>
-                        <TextBlock 
-                            x:Name="ModelsLabel" 
-                            Foreground="White" 
-                            VerticalAlignment="Center" 
-                            FontSize="16" 
-                            Text="Models" 
-                            Opacity="0">
+                    <Image 
+                        Source="avares://subtitles-maker/assets/icons/home.png" 
+                        Width="30"
+                        Height="30"/>
+                    <TextBlock 
+                        x:Name="HomeLabel" 
+                        Foreground="White" 
+                        VerticalAlignment="Center" 
+                        FontSize="16" 
+                        Text="Home" 
+                        Opacity="0">
+                        <TextBlock.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                            </Transitions>
+                        </TextBlock.Transitions>
+                    </TextBlock>
+                </StackPanel>
+            </Button>
 
-                            <TextBlock.Transitions>
-                                <Transitions>
-                                    <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
-                                </Transitions>
-                            </TextBlock.Transitions>
-                        </TextBlock>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
+            <Button 
+                x:Name="ModelsButton"
+                Background="Transparent"
+                BorderThickness="0"
+                Cursor="Hand"
+                ToolTip.Tip="Models"
+                HorizontalAlignment="Left"
+                Margin="0,5,0,0"
+                Padding="10,5,5,5"
+                Width="150">
 
+                <StackPanel 
+                    Orientation="Horizontal" 
+                    Spacing="10" 
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Left">
+                    
+                    <Image 
+                        Source="avares://subtitles-maker/assets/icons/layers.png" 
+                        Width="30"
+                        Height="30"/>
+                    <TextBlock 
+                        x:Name="ModelsLabel" 
+                        Foreground="White" 
+                        VerticalAlignment="Center" 
+                        FontSize="16" 
+                        Text="Models" 
+                        Opacity="0">
+
+                        <TextBlock.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                            </Transitions>
+                        </TextBlock.Transitions>
+                    </TextBlock>
+                </StackPanel>
+            </Button>
         </StackPanel>
+
     </Border>
 </UserControl>

@@ -15,8 +15,7 @@ namespace subtitles_maker.Views.Sidebar
         public Sidebar()
         {
             InitializeComponent();
-
-            this.Width = CollapsedWidth;
+            Width = CollapsedWidth;
             SetLabelsOpacity(0);
 
             var menu = this.FindControl<Button>("MenuButton");
@@ -29,6 +28,7 @@ namespace subtitles_maker.Views.Sidebar
             _expanded = !_expanded;
             Width = _expanded ? ExpandedWidth : CollapsedWidth;
             SetLabelsOpacity(_expanded ? 1 : 0);
+            ToolTip.SetTip(MenuButton, _expanded ? "Minimize" : "Expand");
             OnToggled?.Invoke(_expanded);
         }
 
@@ -36,9 +36,12 @@ namespace subtitles_maker.Views.Sidebar
         {
             Dispatcher.UIThread.Post(() =>
             {
+                var menuLabel = this.FindControl<TextBlock>("MenuLabel");
                 var homeLabel = this.FindControl<TextBlock>("HomeLabel");
                 var modelsLabel = this.FindControl<TextBlock>("ModelsLabel");
 
+                if (menuLabel != null)
+                    menuLabel.Opacity = opacity;
                 if (homeLabel != null)
                     homeLabel.Opacity = opacity;
                 if (modelsLabel != null)
