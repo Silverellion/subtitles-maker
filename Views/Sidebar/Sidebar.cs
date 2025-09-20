@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.Media;
 using System;
 
 namespace subtitles_maker.Views.Sidebar
@@ -14,7 +15,6 @@ namespace subtitles_maker.Views.Sidebar
         private bool _expanded = false;
         private const double CollapsedWidth = 50;
         private const double ExpandedWidth = 150;
-
         public Sidebar()
         {
             InitializeComponent();
@@ -32,6 +32,8 @@ namespace subtitles_maker.Views.Sidebar
             var models = this.FindControl<Button>("ModelsButton");
             if (models != null)
                 models.Click += ModelsButton_Click;
+
+            SelectHome();
         }
 
         private void MenuButton_Click(object? sender, RoutedEventArgs e)
@@ -45,11 +47,13 @@ namespace subtitles_maker.Views.Sidebar
 
         private void HomeButton_Click(object? sender, RoutedEventArgs e)
         {
+            SelectHome();
             OnHomeSelected?.Invoke();
         }
 
         private void ModelsButton_Click(object? sender, RoutedEventArgs e)
         {
+            SelectModels();
             OnModelsSelected?.Invoke();
         }
 
@@ -67,6 +71,36 @@ namespace subtitles_maker.Views.Sidebar
                     homeLabel.Opacity = opacity;
                 if (modelsLabel != null)
                     modelsLabel.Opacity = opacity;
+            }, DispatcherPriority.Background);
+        }
+
+        private void SelectHome()
+        {
+            UpdateSelection("HomeButton");
+        }
+
+        private void SelectModels()
+        {
+            UpdateSelection("ModelsButton");
+        }
+
+        private void UpdateSelection(string selectedButtonName)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                var home = this.FindControl<Button>("HomeButton");
+                var models = this.FindControl<Button>("ModelsButton");
+                var menu = this.FindControl<Button>("MenuButton");
+
+                var selectedBrush = new SolidColorBrush(Color.FromRgb(30, 30, 30));
+                var transparentBrush = Brushes.Transparent;
+
+                if (home != null)
+                    home.Background = selectedButtonName == "HomeButton" ? selectedBrush : transparentBrush;
+                if (models != null)
+                    models.Background = selectedButtonName == "ModelsButton" ? selectedBrush : transparentBrush;
+                if (menu != null)
+                    menu.Background = transparentBrush;
             }, DispatcherPriority.Background);
         }
     }

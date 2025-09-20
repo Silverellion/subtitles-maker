@@ -6,8 +6,9 @@
              Background="Transparent">
 
     <UserControl.Styles>
-        <Style Selector="Button:pointerover">
-            <Setter Property="Background" Value="rgb(30,30,30)"/>
+        <Style Selector="Button">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
         </Style>
     </UserControl.Styles>
 
@@ -18,18 +19,19 @@
     </UserControl.Transitions>
 
     <Border x:Name="Root" Background="rgb(0,0,0)">
-        <StackPanel Orientation="Vertical" HorizontalAlignment="Left">
+        <StackPanel 
+            Orientation="Vertical" 
+            HorizontalAlignment="Left"
+            Spacing="0">
 
             <Button 
                 x:Name="MenuButton"
-                Background="Transparent"
-                BorderThickness="0"
-                Cursor="Hand"
                 ToolTip.Tip="Expand"
                 HorizontalAlignment="Left"
                 Margin="0,0,0,-3"
                 Padding="10,13,5,5"
-                Width="150">
+                Width="150"
+                CornerRadius="0">
 
                  <StackPanel 
                     Orientation="Horizontal" 
@@ -59,14 +61,12 @@
 
             <Button 
                 x:Name="HomeButton"
-                Background="Transparent"
-                BorderThickness="0"
-                Cursor="Hand"
                 ToolTip.Tip="Home"
                 HorizontalAlignment="Left"
-                Margin="0,5,0,0"               
-                Padding="10,5,5,5"
-                Width="150">
+                Margin="0,0,0,0"               
+                Padding="10,10,5,5"
+                Width="150"
+                CornerRadius="0">
 
                 <StackPanel
                     Orientation="Horizontal" 
@@ -96,14 +96,12 @@
 
             <Button 
                 x:Name="ModelsButton"
-                Background="Transparent"
-                BorderThickness="0"
-                Cursor="Hand"
                 ToolTip.Tip="Models"
                 HorizontalAlignment="Left"
-                Margin="0,5,0,0"
-                Padding="10,5,5,5"
-                Width="150">
+                Margin="0,0,0,0"
+                Padding="10,10,5,5"
+                Width="150"
+                CornerRadius="0">
 
                 <StackPanel 
                     Orientation="Horizontal" 
