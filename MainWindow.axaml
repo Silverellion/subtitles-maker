@@ -5,7 +5,7 @@
     xmlns:home="clr-namespace:subtitles_maker.Views.Home"
     xmlns:models="clr-namespace:subtitles_maker.Views.Models"
     x:Class="subtitles_maker.MainWindow"
-    Title="subtitles_maker"
+    Title="Subtitles Maker"
     Background="rgb(30,30,30)"
     Width="1000" Height="600"
     MinWidth="750" MinHeight="450"

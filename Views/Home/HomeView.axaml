@@ -178,7 +178,7 @@
             Grid.Row="3"
             Margin="40,10,40,30"
             Background="rgb(0,0,0)"
-            MinHeight="140">
+            MinHeight="180">
             <DockPanel LastChildFill="True">
 
                 <TextBlock 
