@@ -1,38 +1,49 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using System;
 
 namespace subtitles_maker.Views.Sidebar
 {
     public partial class Sidebar : UserControl
     {
+        public event Action<bool>? OnToggled;
+        private bool _expanded = false;
         private const double CollapsedWidth = 50;
         private const double ExpandedWidth = 150;
-
-        public event Action<bool>? OnToggled;
-
-        public bool IsExpanded { get; private set; } = false;
 
         public Sidebar()
         {
             InitializeComponent();
-            MenuButton.Click += MenuButton_Click;
-            UpdateVisualState();
+
+            this.Width = CollapsedWidth;
+            SetLabelsOpacity(0);
+
+            var menu = this.FindControl<Button>("MenuButton");
+            if (menu != null)
+                menu.Click += MenuButton_Click;
         }
 
         private void MenuButton_Click(object? sender, RoutedEventArgs e)
         {
-            IsExpanded = !IsExpanded;
-            Width = IsExpanded ? ExpandedWidth : CollapsedWidth;
-            UpdateVisualState();
-            OnToggled?.Invoke(IsExpanded);
+            _expanded = !_expanded;
+            Width = _expanded ? ExpandedWidth : CollapsedWidth;
+            SetLabelsOpacity(_expanded ? 1 : 0);
+            OnToggled?.Invoke(_expanded);
         }
 
-        private void UpdateVisualState()
+        private void SetLabelsOpacity(double opacity)
         {
-            var labelOpacity = IsExpanded ? 1.0 : 0.0;
-            HomeLabel.Opacity = labelOpacity;
-            ModelsLabel.Opacity = labelOpacity;
+            Dispatcher.UIThread.Post(() =>
+            {
+                var homeLabel = this.FindControl<TextBlock>("HomeLabel");
+                var modelsLabel = this.FindControl<TextBlock>("ModelsLabel");
+
+                if (homeLabel != null)
+                    homeLabel.Opacity = opacity;
+                if (modelsLabel != null)
+                    modelsLabel.Opacity = opacity;
+            }, DispatcherPriority.Background);
         }
     }
 }

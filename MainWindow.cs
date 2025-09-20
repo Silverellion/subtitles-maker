@@ -1,13 +1,11 @@
 using Avalonia.Controls;
-using Avalonia.Layout;
 using System;
 
 namespace subtitles_maker
 {
     public partial class MainWindow : Window
     {
-        private const double CollapsedWidth = 70;
-        private const double ExpandedWidth = 240;
+        private const double CollapsedWidth = 50;
 
         public MainWindow()
         {
@@ -20,13 +18,12 @@ namespace subtitles_maker
             try
             {
                 var sidebar = this.FindControl<Views.Sidebar.Sidebar>("AppSidebar");
-                var rootGrid = this.FindControl<Grid>("RootGrid");
-                if (sidebar != null && rootGrid != null)
+                if (sidebar != null)
                 {
-                    rootGrid.ColumnDefinitions[0].Width = new GridLength(CollapsedWidth);
+                    sidebar.Width = CollapsedWidth;
                     sidebar.OnToggled += expanded =>
                     {
-                        rootGrid.ColumnDefinitions[0].Width = new GridLength(expanded ? ExpandedWidth : CollapsedWidth);
+                        // sidebar animates itself. Keep hook for future behavior.
                     };
                 }
             }

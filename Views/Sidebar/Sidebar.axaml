@@ -5,15 +5,23 @@
              MinWidth="50"
              Background="Transparent">
 
-    <Border x:Name="Root" Background="rgb(0,0,0)" Padding="5" CornerRadius="8">
-        <StackPanel>
+    <UserControl.Transitions>
+        <Transitions>
+            <DoubleTransition Property="Width" Duration="0:0:0.22" Easing="CubicEaseOut" />
+        </Transitions>
+    </UserControl.Transitions>
+
+    <Border x:Name="Root" Background="rgb(0,0,0)" Padding="10" CornerRadius="8">
+        <StackPanel Spacing="18" HorizontalAlignment="Left" VerticalAlignment="Stretch">
+
             <Button 
                 x:Name="MenuButton"
                 Background="Transparent"
                 BorderThickness="0"
                 Cursor="Hand"
-                ToolTip.Tip="Expand">
-
+                ToolTip.Tip="Expand"
+                HorizontalAlignment="Left"
+                Padding="6">
                 <StackPanel>
                     <Image 
                         Source="avares://subtitles-maker/assets/icons/menu.png" 
@@ -22,15 +30,17 @@
                 </StackPanel>
             </Button>
 
-            <StackPanel Orientation="Vertical">
+            <StackPanel Orientation="Vertical" Spacing="8" HorizontalAlignment="Left">
                 <Button 
                     x:Name="HomeButton"
                     Background="Transparent"
                     BorderThickness="0"
                     Cursor="Hand"
-                    ToolTip.Tip="Home">
+                    ToolTip.Tip="Home"
+                    HorizontalAlignment="Left"
+                    Padding="6">
 
-                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" HorizontalAlignment="Left">
                         <Image 
                             Source="avares://subtitles-maker/assets/icons/home.png" 
                             Width="30"
@@ -41,7 +51,13 @@
                             VerticalAlignment="Center" 
                             FontSize="16" 
                             Text="Home" 
-                            Opacity="0"/>
+                            Opacity="0">
+                            <TextBlock.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                                </Transitions>
+                            </TextBlock.Transitions>
+                        </TextBlock>
                     </StackPanel>
                 </Button>
 
@@ -50,11 +66,14 @@
                     Background="Transparent"
                     BorderThickness="0"
                     Cursor="Hand"
-                    ToolTip.Tip = "Models">
+                    ToolTip.Tip = "Models"
+                    HorizontalAlignment="Left"
+                    Padding="6">
                     <StackPanel 
                         Orientation="Horizontal" 
-                        Spacing="5" 
-                        VerticalAlignment="Center">
+                        Spacing="10" 
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Left">
                         <Image 
                             Source="avares://subtitles-maker/assets/icons/layers.png" 
                             Width="30"
@@ -65,7 +84,14 @@
                             VerticalAlignment="Center" 
                             FontSize="16" 
                             Text="Models" 
-                            Opacity="0"/>
+                            Opacity="0">
+
+                            <TextBlock.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                                </Transitions>
+                            </TextBlock.Transitions>
+                        </TextBlock>
                     </StackPanel>
                 </Button>
             </StackPanel>
