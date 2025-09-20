@@ -3,6 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:sidebar="clr-namespace:subtitles_maker.Views.Sidebar"
     xmlns:home="clr-namespace:subtitles_maker.Views.Home"
+    xmlns:models="clr-namespace:subtitles_maker.Views.Models"
     x:Class="subtitles_maker.MainWindow"
     Title="subtitles_maker"
     Background="rgb(30,30,30)"
@@ -13,8 +14,10 @@
     <Grid x:Name="RootGrid" ColumnDefinitions="Auto,1*">
         <sidebar:Sidebar x:Name="AppSidebar" Grid.Column="0" />
 
-        <Border Grid.Column="1" Background="Transparent" Padding="20">
-            <home:HomeView />
+        <Border x:Name="ContentBorder" Grid.Column="1" Background="rgb(30,30,30)" Padding="20">
+            <ContentControl x:Name="MainContent">
+                <home:HomeView />
+            </ContentControl>
         </Border>
     </Grid>
 </Window>

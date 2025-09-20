@@ -8,6 +8,9 @@ namespace subtitles_maker.Views.Sidebar
     public partial class Sidebar : UserControl
     {
         public event Action<bool>? OnToggled;
+        public event Action? OnHomeSelected;
+        public event Action? OnModelsSelected;
+
         private bool _expanded = false;
         private const double CollapsedWidth = 50;
         private const double ExpandedWidth = 150;
@@ -21,6 +24,14 @@ namespace subtitles_maker.Views.Sidebar
             var menu = this.FindControl<Button>("MenuButton");
             if (menu != null)
                 menu.Click += MenuButton_Click;
+
+            var home = this.FindControl<Button>("HomeButton");
+            if (home != null)
+                home.Click += HomeButton_Click;
+
+            var models = this.FindControl<Button>("ModelsButton");
+            if (models != null)
+                models.Click += ModelsButton_Click;
         }
 
         private void MenuButton_Click(object? sender, RoutedEventArgs e)
@@ -30,6 +41,16 @@ namespace subtitles_maker.Views.Sidebar
             SetLabelsOpacity(_expanded ? 1 : 0);
             ToolTip.SetTip(MenuButton, _expanded ? "Minimize" : "Expand");
             OnToggled?.Invoke(_expanded);
+        }
+
+        private void HomeButton_Click(object? sender, RoutedEventArgs e)
+        {
+            OnHomeSelected?.Invoke();
+        }
+
+        private void ModelsButton_Click(object? sender, RoutedEventArgs e)
+        {
+            OnModelsSelected?.Invoke();
         }
 
         private void SetLabelsOpacity(double opacity)

@@ -5,6 +5,12 @@
              MinWidth="50"
              Background="Transparent">
 
+    <UserControl.Styles>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="rgb(30,30,30)"/>
+        </Style>
+    </UserControl.Styles>
+
     <UserControl.Transitions>
         <Transitions>
             <DoubleTransition Property="Width" Duration="0:0:0.22" Easing="CubicEaseOut" />
