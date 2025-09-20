@@ -1,0 +1,135 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="subtitles_maker.Views.Sidebar.Sidebar"
+             Width="50"
+             MinWidth="50"
+             Background="Transparent">
+
+    <UserControl.Styles>
+        <Style Selector="Button">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </UserControl.Styles>
+
+    <UserControl.Transitions>
+        <Transitions>
+            <DoubleTransition Property="Width" Duration="0:0:0.22" Easing="CubicEaseOut" />
+        </Transitions>
+    </UserControl.Transitions>
+
+    <Border x:Name="Root" Background="rgb(0,0,0)">
+        <StackPanel 
+            Orientation="Vertical" 
+            HorizontalAlignment="Left"
+            Spacing="0">
+
+            <Button 
+                x:Name="MenuButton"
+                ToolTip.Tip="Expand"
+                HorizontalAlignment="Left"
+                Margin="0,0,0,-3"
+                Padding="10,13,5,5"
+                Width="150"
+                CornerRadius="0">
+
+                 <StackPanel 
+                    Orientation="Horizontal" 
+                    Spacing="10" 
+                    VerticalAlignment="Center" 
+                    HorizontalAlignment="Left">
+
+                    <Image 
+                        Source="avares://subtitles-maker/assets/icons/menu.png" 
+                        Width="30"
+                        Height="30"/>
+                    <TextBlock 
+                        x:Name="MenuLabel" 
+                        Foreground="White" 
+                        VerticalAlignment="Center" 
+                        FontSize="16" 
+                        Text="Minimize" 
+                        Opacity="0">
+                        <TextBlock.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                            </Transitions>
+                        </TextBlock.Transitions>
+                    </TextBlock>
+                </StackPanel>
+            </Button>
+
+            <Button 
+                x:Name="HomeButton"
+                ToolTip.Tip="Home"
+                HorizontalAlignment="Left"
+                Margin="0,0,0,0"               
+                Padding="10,10,5,5"
+                Width="150"
+                CornerRadius="0">
+
+                <StackPanel
+                    Orientation="Horizontal" 
+                    Spacing="10" 
+                    VerticalAlignment="Center" 
+                    HorizontalAlignment="Left">
+
+                    <Image 
+                        Source="avares://subtitles-maker/assets/icons/home.png" 
+                        Width="30"
+                        Height="30"/>
+                    <TextBlock 
+                        x:Name="HomeLabel" 
+                        Foreground="White" 
+                        VerticalAlignment="Center" 
+                        FontSize="16" 
+                        Text="Home" 
+                        Opacity="0">
+                        <TextBlock.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                            </Transitions>
+                        </TextBlock.Transitions>
+                    </TextBlock>
+                </StackPanel>
+            </Button>
+
+            <Button 
+                x:Name="ModelsButton"
+                ToolTip.Tip="Models"
+                HorizontalAlignment="Left"
+                Margin="0,0,0,0"
+                Padding="10,10,5,5"
+                Width="150"
+                CornerRadius="0">
+
+                <StackPanel 
+                    Orientation="Horizontal" 
+                    Spacing="10" 
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Left">
+                    
+                    <Image 
+                        Source="avares://subtitles-maker/assets/icons/layers.png" 
+                        Width="30"
+                        Height="30"/>
+                    <TextBlock 
+                        x:Name="ModelsLabel" 
+                        Foreground="White" 
+                        VerticalAlignment="Center" 
+                        FontSize="16" 
+                        Text="Models" 
+                        Opacity="0">
+
+                        <TextBlock.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+                            </Transitions>
+                        </TextBlock.Transitions>
+                    </TextBlock>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+    </Border>
+</UserControl>
