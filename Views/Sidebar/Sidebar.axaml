@@ -16,8 +16,8 @@
                 <StackPanel>
                     <Image 
                         Source="avares://subtitles-maker/assets/icons/menu.png" 
-                        Width="35"
-                        Height="35"/>
+                        Width="30"
+                        Height="30"/>
                 </StackPanel>
             </Button>
 
@@ -31,8 +31,8 @@
                     <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
                         <Image 
                             Source="avares://subtitles-maker/assets/icons/home.png" 
-                            Width="35"
-                            Height="35"/>
+                            Width="30"
+                            Height="30"/>
                         <TextBlock 
                             x:Name="HomeLabel" 
                             Foreground="White" 
@@ -54,8 +54,8 @@
                         VerticalAlignment="Center">
                         <Image 
                             Source="avares://subtitles-maker/assets/icons/layers.png" 
-                            Width="35"
-                            Height="35"/>
+                            Width="30"
+                            Height="30"/>
                         <TextBlock 
                             x:Name="ModelsLabel" 
                             Foreground="White" 
