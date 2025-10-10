@@ -2,4 +2,25 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="subtitles_maker.Views.Models.ModelsView"
              Background="transparent">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="20">
+            <TextBlock 
+                Text="Whisper Models"
+                FontSize="24"
+                FontWeight="Bold"
+                Foreground="White"
+                Margin="0,0,0,10"/>
+            
+            <TextBlock 
+                Text="Download Whisper models from Hugging Face. Models will be saved to your user directory."
+                FontSize="14"
+                Foreground="rgb(200,200,200)"
+                Margin="0,0,0,20"/>
+
+            <StackPanel x:Name="ModelsStackPanel" Spacing="0">
+                <!-- Model cards will be added here dynamically -->
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>
