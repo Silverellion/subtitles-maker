@@ -7,8 +7,8 @@
     x:Class="subtitles_maker.MainWindow"
     Title="Subtitles Maker"
     Background="rgb(30,30,30)"
-    Width="1000" Height="600"
-    MinWidth="750" MinHeight="450"
+    Width="1200" Height="750"
+    MinWidth="800" MinHeight="450"
     FontFamily="Inter">
 
     <Grid x:Name="RootGrid" ColumnDefinitions="Auto,1*">

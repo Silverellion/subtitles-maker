@@ -14,7 +14,7 @@ namespace subtitles_maker.Views.Sidebar
 
         private bool _expanded = false;
         private const double CollapsedWidth = 50;
-        private const double ExpandedWidth = 150;
+        private const double ExpandedWidth = 200;
         public Sidebar()
         {
             InitializeComponent();
