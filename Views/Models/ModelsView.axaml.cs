@@ -170,8 +170,8 @@ namespace subtitles_maker.Views.Models
             bool isDownloaded = File.Exists(modelPath);
             var downloadButton = new Button
             {
-                Width = 50,
-                Height = 50,
+                Width = 45,
+                Height = 45,
                 Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
@@ -191,8 +191,8 @@ namespace subtitles_maker.Views.Models
 
             var openFolderButton = new Button
             {
-                Width = 50,
-                Height = 50,
+                Width = 45,
+                Height = 45,
                 Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
@@ -206,8 +206,8 @@ namespace subtitles_maker.Views.Models
 
             var openInNewButton = new Button
             {
-                Width = 50,
-                Height = 50,
+                Width = 45,
+                Height = 45,
                 Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
@@ -270,7 +270,7 @@ namespace subtitles_maker.Views.Models
                             {
                                 Text = model.DisplayName,
                                 FontSize = 16,
-                                FontWeight = Avalonia.Media.FontWeight.Bold,
+                                FontWeight = FontWeight.Bold,
                                 Foreground = Brushes.White
                             },
                             new TextBlock
