@@ -9,23 +9,23 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 
 namespace subtitles_maker.Views.Models
 {
     public partial class ModelsView : UserControl
     {
         private const string HuggingFaceApiUrl = "https://huggingface.co/api/models/ggerganov/whisper.cpp/tree/main";
-        private readonly string _modelsDirectory;
+        private const string ModelsDirectory = @"C:\subtitles-maker\models";
         private readonly Dictionary<string, DownloadProgress> _activeDownloads = new();
         private List<WhisperModel> _availableModels = new();
 
         public ModelsView()
         {
             InitializeComponent();
-            
-            _modelsDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "subtitles-maker", "models");
-            Directory.CreateDirectory(_modelsDirectory);
-            
+            Directory.CreateDirectory(ModelsDirectory);
             LoadModelsFromApi();
         }
 
@@ -41,7 +41,7 @@ namespace subtitles_maker.Views.Models
             {
                 Text = "Loading models from Hugging Face...",
                 FontSize = 16,
-                Foreground = Avalonia.Media.Brushes.White,
+                Foreground = Brushes.White,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                 Margin = new Avalonia.Thickness(0, 50, 0, 0)
             };
@@ -59,7 +59,7 @@ namespace subtitles_maker.Views.Models
                     {
                         Text = "No .bin models found in the repository.",
                         FontSize = 16,
-                        Foreground = Avalonia.Media.Brushes.White,
+                        Foreground = Brushes.White,
                         HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                         Margin = new Avalonia.Thickness(0, 50, 0, 0)
                     };
@@ -80,10 +80,10 @@ namespace subtitles_maker.Views.Models
                 {
                     Text = $"Error loading models: {ex.Message}",
                     FontSize = 14,
-                    Foreground = Avalonia.Media.Brushes.Red,
+                    Foreground = Brushes.Red,
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                     Margin = new Avalonia.Thickness(0, 50, 0, 0),
-                    TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                    TextWrapping = TextWrapping.Wrap
                 };
                 stackPanel.Children.Add(errorText);
             }
@@ -137,7 +137,6 @@ namespace subtitles_maker.Views.Models
             string name = fileName.Replace("ggml-", "", StringComparison.OrdinalIgnoreCase)
                                  .Replace(".bin", "", StringComparison.OrdinalIgnoreCase);
 
-            // Capitalize first letter and format nicely
             if (string.IsNullOrEmpty(name))
                 return fileName;
 
@@ -167,51 +166,84 @@ namespace subtitles_maker.Views.Models
 
         private Border CreateModelCard(WhisperModel model)
         {
-            string modelPath = Path.Combine(_modelsDirectory, model.FileName);
+            string modelPath = Path.Combine(ModelsDirectory, model.FileName);
             bool isDownloaded = File.Exists(modelPath);
 
             var downloadButton = new Button
             {
-                Content = isDownloaded ? "Downloaded" : "Download",
-                Width = 120,
-                Height = 40,
+                Width = 50,
+                Height = 50,
+                Background = Brushes.Transparent,
+                BorderThickness = new Avalonia.Thickness(0),
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
-                IsEnabled = !isDownloaded,
-                Tag = model
+                Tag = model,
             };
 
+            var downloadIcon = new Image
+            {
+                Source = new Bitmap(AssetLoader.Open(new Uri(
+                    isDownloaded 
+                        ? "avares://subtitles-maker/assets/icons/check-75.png"
+                        : "avares://subtitles-maker/assets/icons/download-75.png")))
+            };
+
+            downloadButton.Content = downloadIcon;
             downloadButton.Click += DownloadButton_Click;
 
             var openFolderButton = new Button
             {
-                Width = 40,
-                Height = 40,
-                Background = Avalonia.Media.Brushes.Transparent,
+                Width = 50,
+                Height = 50,
+                Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
-                Content = new TextBlock
+                Content = new Image
                 {
-                    Text = "📁",
-                    FontSize = 20,
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/folder-open-75.png"))),
                 },
-                IsVisible = isDownloaded
             };
 
             openFolderButton.Click += (s, e) => OpenModelFolder();
+
+            var openInNewButton = new Button
+            {
+                Width = 50,
+                Height = 50,
+                Background = Brushes.Transparent,
+                BorderThickness = new Avalonia.Thickness(0),
+                Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
+                Content = new Image
+                {
+                    Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/open-in-new-75.png"))),
+                },
+            };
+
+            openInNewButton.Click += (s, e) =>
+            {
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = $"https://huggingface.co/ggerganov/whisper.cpp/blob/main/{model.FileName}",
+                        UseShellExecute = true
+                    });
+                }
+                catch { }
+            };
 
             var progressBar = new ProgressBar
             {
                 Height = 4,
                 Margin = new Avalonia.Thickness(0, 10, 0, 0),
                 IsVisible = false,
-                Foreground = Avalonia.Media.Brushes.Green
+                Foreground = Brushes.Green,
+                Maximum = 100,
+                Value = 0
             };
 
             var progressText = new TextBlock
             {
-                Foreground = Avalonia.Media.Brushes.White,
+                Foreground = Brushes.White,
                 FontSize = 12,
                 Margin = new Avalonia.Thickness(0, 5, 0, 0),
                 IsVisible = false
@@ -220,39 +252,52 @@ namespace subtitles_maker.Views.Models
             var buttonsPanel = new StackPanel
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
-                Spacing = 10,
-                Children = { downloadButton, openFolderButton }
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                Children = { downloadButton, openFolderButton, openInNewButton }
             };
 
-            var contentPanel = new StackPanel
+            var contentGrid = new Grid
             {
+                ColumnDefinitions = new ColumnDefinitions("*,Auto"),
                 Children =
                 {
-                    new TextBlock
+                    new StackPanel
                     {
-                        Text = model.DisplayName,
-                        FontSize = 16,
-                        FontWeight = Avalonia.Media.FontWeight.Bold,
-                        Foreground = Avalonia.Media.Brushes.White
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        Children =
+                        {
+                            new TextBlock
+                            {
+                                Text = model.DisplayName,
+                                FontSize = 16,
+                                FontWeight = Avalonia.Media.FontWeight.Bold,
+                                Foreground = Brushes.White
+                            },
+                            new TextBlock
+                            {
+                                Text = model.FileName,
+                                FontSize = 12,
+                                Foreground = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+                                Margin = new Avalonia.Thickness(0, 2, 0, 0)
+                            },
+                            new TextBlock
+                            {
+                                Text = $"Size: {model.Size}",
+                                FontSize = 12,
+                                Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150)),
+                                Margin = new Avalonia.Thickness(0, 2, 0, 0)
+                            }
+                        }
                     },
-                    new TextBlock
-                    {
-                        Text = model.FileName,
-                        FontSize = 12,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(200, 200, 200)),
-                        Margin = new Avalonia.Thickness(0, 5, 0, 0)
-                    },
-                    new TextBlock
-                    {
-                        Text = $"Size: {model.Size}",
-                        FontSize = 12,
-                        Foreground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(150, 150, 150)),
-                        Margin = new Avalonia.Thickness(0, 5, 0, 10)
-                    },
-                    buttonsPanel,
-                    progressBar,
-                    progressText
+                    buttonsPanel
                 }
+            };
+
+            Grid.SetColumn(buttonsPanel, 1);
+
+            var mainPanel = new StackPanel
+            {
+                Children = { contentGrid, progressBar, progressText }
             };
 
             _activeDownloads[model.FileName] = new DownloadProgress
@@ -260,18 +305,19 @@ namespace subtitles_maker.Views.Models
                 ProgressBar = progressBar,
                 ProgressText = progressText,
                 DownloadButton = downloadButton,
-                OpenFolderButton = openFolderButton
+                OpenFolderButton = openFolderButton,
+                DownloadIcon = downloadIcon
             };
 
             return new Border
             {
-                Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(40, 40, 40)),
-                BorderBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.FromRgb(80, 80, 80)),
+                Background = new SolidColorBrush(Color.FromRgb(40, 40, 40)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
                 BorderThickness = new Avalonia.Thickness(1),
                 CornerRadius = new Avalonia.CornerRadius(8),
-                Padding = new Avalonia.Thickness(20),
-                Margin = new Avalonia.Thickness(0, 0, 0, 15),
-                Child = contentPanel
+                Padding = new Avalonia.Thickness(20, 15, 20, 15),
+                Margin = new Avalonia.Thickness(0, 0, 0, 10),
+                Child = mainPanel
             };
         }
 
@@ -283,8 +329,6 @@ namespace subtitles_maker.Views.Models
             if (!_activeDownloads.TryGetValue(model.FileName, out var progress))
                 return;
 
-            button.IsEnabled = false;
-            button.Content = "Downloading...";
             progress.ProgressBar.IsVisible = true;
             progress.ProgressText.IsVisible = true;
 
@@ -292,25 +336,28 @@ namespace subtitles_maker.Views.Models
             {
                 await DownloadModel(model, progress);
                 
-                button.Content = "Downloaded";
-                progress.OpenFolderButton.IsVisible = true;
+                // Change icon to check mark
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(
+                    new Uri("avares://subtitles-maker/assets/icons/check-75.png")));
+                
                 progress.ProgressBar.IsVisible = false;
                 progress.ProgressText.IsVisible = false;
             }
             catch (Exception ex)
             {
-                button.IsEnabled = true;
-                button.Content = "Download";
                 progress.ProgressBar.IsVisible = false;
-                progress.ProgressText.IsVisible = false;
                 progress.ProgressText.Text = $"Error: {ex.Message}";
+                progress.ProgressText.Foreground = Brushes.Red;
                 progress.ProgressText.IsVisible = true;
+                
+                await Task.Delay(5000);
+                progress.ProgressText.IsVisible = false;
             }
         }
 
         private async Task DownloadModel(WhisperModel model, DownloadProgress progress)
         {
-            string modelPath = Path.Combine(_modelsDirectory, model.FileName);
+            string modelPath = Path.Combine(ModelsDirectory, model.FileName);
             
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromHours(2);
@@ -348,11 +395,11 @@ namespace subtitles_maker.Views.Models
 
         private void OpenModelFolder()
         {
-            if (Directory.Exists(_modelsDirectory))
+            if (Directory.Exists(ModelsDirectory))
             {
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = _modelsDirectory,
+                    FileName = ModelsDirectory,
                     UseShellExecute = true,
                     Verb = "open"
                 });
@@ -381,6 +428,7 @@ namespace subtitles_maker.Views.Models
             public TextBlock ProgressText { get; set; } = null!;
             public Button DownloadButton { get; set; } = null!;
             public Button OpenFolderButton { get; set; } = null!;
+            public Image DownloadIcon { get; set; } = null!;
         }
     }
 }
