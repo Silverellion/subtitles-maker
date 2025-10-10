@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="subtitles_maker.Views.Sidebar.Sidebar"
+             x:Class="subtitles_maker.Views.Sidebar.SidebarView"
              Width="50"
              MinWidth="50"
              Background="Transparent">

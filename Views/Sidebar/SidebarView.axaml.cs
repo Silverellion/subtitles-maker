@@ -6,7 +6,7 @@ using System;
 
 namespace subtitles_maker.Views.Sidebar
 {
-    public partial class Sidebar : UserControl
+    public partial class SidebarView : UserControl
     {
         public event Action<bool>? OnToggled;
         public event Action? OnHomeSelected;
@@ -15,7 +15,7 @@ namespace subtitles_maker.Views.Sidebar
         private bool _expanded = false;
         private const double CollapsedWidth = 50;
         private const double ExpandedWidth = 200;
-        public Sidebar()
+        public SidebarView()
         {
             InitializeComponent();
             Width = CollapsedWidth;
