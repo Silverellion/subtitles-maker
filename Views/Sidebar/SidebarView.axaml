@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="subtitles_maker.Views.Sidebar.Sidebar"
+             x:Class="subtitles_maker.Views.Sidebar.SidebarView"
              Width="50"
              MinWidth="50"
              Background="Transparent">
@@ -40,7 +40,7 @@
                     HorizontalAlignment="Left">
 
                     <Image 
-                        Source="avares://subtitles-maker/assets/icons/menu.png" 
+                        Source="avares://subtitles-maker/assets/icons/menu-50.png" 
                         Width="30"
                         Height="30"/>
                     <TextBlock 
@@ -75,7 +75,7 @@
                     HorizontalAlignment="Left">
 
                     <Image 
-                        Source="avares://subtitles-maker/assets/icons/home.png" 
+                        Source="avares://subtitles-maker/assets/icons/home-50.png" 
                         Width="30"
                         Height="30"/>
                     <TextBlock 
@@ -110,7 +110,7 @@
                     HorizontalAlignment="Left">
                     
                     <Image 
-                        Source="avares://subtitles-maker/assets/icons/layers.png" 
+                        Source="avares://subtitles-maker/assets/icons/layers-50.png" 
                         Width="30"
                         Height="30"/>
                     <TextBlock 

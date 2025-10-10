@@ -168,16 +168,16 @@ namespace subtitles_maker.Views.Models
         {
             string modelPath = Path.Combine(ModelsDirectory, model.FileName);
             bool isDownloaded = File.Exists(modelPath);
-
             var downloadButton = new Button
             {
-                Width = 50,
-                Height = 50,
+                Width = 45,
+                Height = 45,
                 Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
                 Tag = model,
             };
+            ToolTip.SetTip(downloadButton, isDownloaded ? "Model already downloaded" : $"Download {model.DisplayName}");
 
             var downloadIcon = new Image
             {
@@ -186,14 +186,13 @@ namespace subtitles_maker.Views.Models
                         ? "avares://subtitles-maker/assets/icons/check-75.png"
                         : "avares://subtitles-maker/assets/icons/download-75.png")))
             };
-
             downloadButton.Content = downloadIcon;
             downloadButton.Click += DownloadButton_Click;
 
             var openFolderButton = new Button
             {
-                Width = 50,
-                Height = 50,
+                Width = 45,
+                Height = 45,
                 Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
@@ -202,13 +201,13 @@ namespace subtitles_maker.Views.Models
                     Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/folder-open-75.png"))),
                 },
             };
-
+            ToolTip.SetTip(openFolderButton, "Open models folder");
             openFolderButton.Click += (s, e) => OpenModelFolder();
 
             var openInNewButton = new Button
             {
-                Width = 50,
-                Height = 50,
+                Width = 45,
+                Height = 45,
                 Background = Brushes.Transparent,
                 BorderThickness = new Avalonia.Thickness(0),
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
@@ -217,6 +216,7 @@ namespace subtitles_maker.Views.Models
                     Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/open-in-new-75.png"))),
                 },
             };
+            ToolTip.SetTip(openInNewButton, "View on Hugging Face");
 
             openInNewButton.Click += (s, e) =>
             {
@@ -270,7 +270,7 @@ namespace subtitles_maker.Views.Models
                             {
                                 Text = model.DisplayName,
                                 FontSize = 16,
-                                FontWeight = Avalonia.Media.FontWeight.Bold,
+                                FontWeight = FontWeight.Bold,
                                 Foreground = Brushes.White
                             },
                             new TextBlock

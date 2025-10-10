@@ -27,7 +27,7 @@
                                 Cursor="Hand"
                                 ToolTip.Tip="Open model folder">
                             <Image 
-                                Source="avares://subtitles-maker/assets/icons/folder-open.png" 
+                                Source="avares://subtitles-maker/assets/icons/folder-open-50.png" 
                                 Width="24" 
                                 Height="24"/>
                         </Button>
@@ -41,7 +41,7 @@
                             Cursor="Hand"
                             ToolTip.Tip="Choose new model">
                             <Image 
-                                Source="avares://subtitles-maker/assets/icons/folder-new.png" 
+                                Source="avares://subtitles-maker/assets/icons/folder-new-50.png" 
                                 Width="24" 
                                 Height="24"/>
                         </Button>
@@ -75,7 +75,7 @@
                             Cursor="Hand"
                             ToolTip.Tip="Open output folder">
                             <Image
-                                Source="avares://subtitles-maker/assets/icons/folder-open.png"
+                                Source="avares://subtitles-maker/assets/icons/folder-open-50.png"
                                 Width="24"
                                 Height="24"/>
                         </Button>
@@ -89,7 +89,7 @@
                             Cursor="Hand"
                             ToolTip.Tip="Choose new output folder">
                             <Image 
-                                Source="avares://subtitles-maker/assets/icons/folder-new.png" 
+                                Source="avares://subtitles-maker/assets/icons/folder-new-50.png" 
                                 Width="24" 
                                 Height="24"/>
                         </Button>

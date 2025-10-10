@@ -20,7 +20,7 @@ namespace subtitles_maker
         {
             try
             {
-                var sidebar = this.FindControl<Views.Sidebar.Sidebar>("AppSidebar");
+                var sidebar = this.FindControl<Views.Sidebar.SidebarView>("AppSidebar");
                 if (sidebar != null)
                 {
                     sidebar.Width = CollapsedWidth;

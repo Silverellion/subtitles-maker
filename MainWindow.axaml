@@ -12,7 +12,7 @@
     FontFamily="Inter">
 
     <Grid x:Name="RootGrid" ColumnDefinitions="Auto,1*">
-        <sidebar:Sidebar x:Name="AppSidebar" Grid.Column="0" />
+        <sidebar:SidebarView x:Name="AppSidebar" Grid.Column="0" />
 
         <Border x:Name="ContentBorder" Grid.Column="1" Background="rgb(30,30,30)" Padding="20">
             <ContentControl x:Name="MainContent">
