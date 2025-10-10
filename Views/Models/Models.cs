@@ -168,7 +168,6 @@ namespace subtitles_maker.Views.Models
         {
             string modelPath = Path.Combine(ModelsDirectory, model.FileName);
             bool isDownloaded = File.Exists(modelPath);
-
             var downloadButton = new Button
             {
                 Width = 50,
@@ -178,6 +177,7 @@ namespace subtitles_maker.Views.Models
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
                 Tag = model,
             };
+            ToolTip.SetTip(downloadButton, isDownloaded ? "Model already downloaded" : $"Download {model.DisplayName}");
 
             var downloadIcon = new Image
             {
@@ -186,7 +186,6 @@ namespace subtitles_maker.Views.Models
                         ? "avares://subtitles-maker/assets/icons/check-75.png"
                         : "avares://subtitles-maker/assets/icons/download-75.png")))
             };
-
             downloadButton.Content = downloadIcon;
             downloadButton.Click += DownloadButton_Click;
 
@@ -202,7 +201,7 @@ namespace subtitles_maker.Views.Models
                     Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/folder-open-75.png"))),
                 },
             };
-
+            ToolTip.SetTip(openFolderButton, "Open models folder");
             openFolderButton.Click += (s, e) => OpenModelFolder();
 
             var openInNewButton = new Button
@@ -217,6 +216,7 @@ namespace subtitles_maker.Views.Models
                     Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/open-in-new-75.png"))),
                 },
             };
+            ToolTip.SetTip(openInNewButton, "View on Hugging Face");
 
             openInNewButton.Click += (s, e) =>
             {
