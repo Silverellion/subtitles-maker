@@ -52,45 +52,8 @@ namespace subtitles_maker.Views.Models
             try
             {
                 _availableModels = await FetchModelsFromHuggingFace();
-
-                grid.Children.Clear();
-                grid.RowDefinitions.Clear();
-
-                if (_availableModels.Count == 0)
-                {
-                    var noModelsText = new TextBlock
-                    {
-                        Text = "No .bin models found in the repository.",
-                        FontSize = 16,
-                        Foreground = Brushes.White,
-                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                        Margin = new Avalonia.Thickness(0, 50, 0, 0)
-                    };
-                    Grid.SetColumnSpan(noModelsText, 2);
-                    grid.Children.Add(noModelsText);
-                    return;
-                }
-
-                int i = 0;
-                foreach (var model in _availableModels.OrderBy(m => m.FileName))
-                {
-                    var card = CreateModelCard(model);
-
-                    // Ensure rows exist
-                    int row = i / 2;
-                    int col = i % 2;
-                    while (grid.RowDefinitions.Count <= row)
-                        grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-
-                    Grid.SetRow(card, row);
-                    Grid.SetColumn(card, col);
-
-                    card.Margin = new Avalonia.Thickness(col == 0 ? 0 : 10, 0, 0, 10);
-                    card.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
-
-                    grid.Children.Add(card);
-                    i++;
-                }
+                // Render all models initially
+                RenderModels(_availableModels);
             }
             catch (Exception ex)
             {
@@ -109,6 +72,69 @@ namespace subtitles_maker.Views.Models
                 Grid.SetColumnSpan(errorText, 2);
                 grid.Children.Add(errorText);
             }
+        }
+
+        private void RenderModels(IEnumerable<WhisperModel> models)
+        {
+            var grid = this.FindControl<Grid>("ModelsGrid");
+            if (grid == null) return;
+
+            grid.Children.Clear();
+            grid.RowDefinitions.Clear();
+
+            var list = models?.ToList() ?? new List<WhisperModel>();
+            if (list.Count == 0)
+            {
+                var noModelsText = new TextBlock
+                {
+                    Text = "No models match your search.",
+                    FontSize = 16,
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    Margin = new Avalonia.Thickness(0, 50, 0, 0)
+                };
+                Grid.SetColumnSpan(noModelsText, 2);
+                grid.Children.Add(noModelsText);
+                return;
+            }
+
+            int i = 0;
+            foreach (var model in list.OrderBy(m => m.FileName))
+            {
+                var card = CreateModelCard(model);
+
+                int row = i / 2;
+                int col = i % 2;
+                while (grid.RowDefinitions.Count <= row)
+                    grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+
+                Grid.SetRow(card, row);
+                Grid.SetColumn(card, col);
+
+                card.Margin = new Avalonia.Thickness(col == 0 ? 0 : 10, 0, 0, 10);
+                card.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+
+                grid.Children.Add(card);
+                i++;
+            }
+        }
+
+        private void SearchBox_TextChanged(object? sender, TextChangedEventArgs e)
+        {
+            var q = (sender as TextBox)?.Text?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(q))
+            {
+                RenderModels(_availableModels);
+                return;
+            }
+
+            var filtered = _availableModels.Where(m =>
+                   (m.DisplayName?.IndexOf(q, StringComparison.OrdinalIgnoreCase) ?? -1) >= 0
+                || (m.FileName?.IndexOf(q, StringComparison.OrdinalIgnoreCase) ?? -1) >= 0
+                || (m.Size?.IndexOf(q, StringComparison.OrdinalIgnoreCase) ?? -1) >= 0);
+
+            RenderModels(filtered);
         }
 
         private async Task<List<WhisperModel>> FetchModelsFromHuggingFace()

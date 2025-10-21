@@ -16,7 +16,28 @@
                 Text="Download Whisper models from Hugging Face. Models will be saved to your user directory."
                 FontSize="14"
                 Foreground="rgb(200,200,200)"
-                Margin="0,0,0,20"/>
+                Margin="0,0,0,10"/>
+
+            <Border Background="#262626"
+                    BorderBrush="#505050"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    HorizontalAlignment="Right"
+                    Margin="0,0,0,10">
+                <Grid ColumnDefinitions="Auto,*" Height="34">
+                    <Image Source="avares://subtitles-maker/assets/icons/search-50.png"
+                           Width="16" Height="16" Margin="10,0,8,0"
+                           VerticalAlignment="Center" Opacity="0.85"/>
+                    <TextBox x:Name="SearchBox"
+                             Grid.Column="1"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Foreground="White"
+                             Watermark="Search models..."
+                             MinWidth="260"
+                             TextChanged="SearchBox_TextChanged"/>
+                </Grid>
+            </Border>
 
             <Grid x:Name="ModelsGrid" ColumnDefinitions="*,*"/>
         </StackPanel>
