@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using System.Threading;
 
 namespace subtitles_maker.Views.Models
 {
@@ -29,12 +30,28 @@ namespace subtitles_maker.Views.Models
             LoadModelsFromApi();
         }
 
+        // Unfocus the search box when clicking anywhere outside of it
+        private void Root_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+        {
+            var tb = this.FindControl<TextBox>("SearchBox");
+            if (tb == null)
+                return;
+
+            var pos = e.GetPosition(tb);
+            if (pos.X < 0 || pos.Y < 0 || pos.X > tb.Bounds.Width || pos.Y > tb.Bounds.Height)
+            {
+                var top = TopLevel.GetTopLevel(this);
+                top?.FocusManager?.ClearFocus();
+            }
+        }
+
         private async void LoadModelsFromApi()
         {
-            var stackPanel = this.FindControl<StackPanel>("ModelsStackPanel");
-            if (stackPanel == null) return;
+            var grid = this.FindControl<Grid>("ModelsGrid");
+            if (grid == null) return;
 
-            stackPanel.Children.Clear();
+            grid.Children.Clear();
+            grid.RowDefinitions.Clear();
 
             // Show loading indicator
             var loadingText = new TextBlock
@@ -45,37 +62,20 @@ namespace subtitles_maker.Views.Models
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                 Margin = new Avalonia.Thickness(0, 50, 0, 0)
             };
-            stackPanel.Children.Add(loadingText);
+            Grid.SetColumnSpan(loadingText, 2);
+            grid.Children.Add(loadingText);
 
             try
             {
                 _availableModels = await FetchModelsFromHuggingFace();
-                
-                stackPanel.Children.Clear();
-
-                if (_availableModels.Count == 0)
-                {
-                    var noModelsText = new TextBlock
-                    {
-                        Text = "No .bin models found in the repository.",
-                        FontSize = 16,
-                        Foreground = Brushes.White,
-                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                        Margin = new Avalonia.Thickness(0, 50, 0, 0)
-                    };
-                    stackPanel.Children.Add(noModelsText);
-                    return;
-                }
-
-                foreach (var model in _availableModels.OrderBy(m => m.FileName))
-                {
-                    var modelCard = CreateModelCard(model);
-                    stackPanel.Children.Add(modelCard);
-                }
+                // Render all models initially
+                RenderModels(_availableModels);
             }
             catch (Exception ex)
             {
-                stackPanel.Children.Clear();
+                grid.Children.Clear();
+                grid.RowDefinitions.Clear();
+
                 var errorText = new TextBlock
                 {
                     Text = $"Error loading models: {ex.Message}",
@@ -85,8 +85,72 @@ namespace subtitles_maker.Views.Models
                     Margin = new Avalonia.Thickness(0, 50, 0, 0),
                     TextWrapping = TextWrapping.Wrap
                 };
-                stackPanel.Children.Add(errorText);
+                Grid.SetColumnSpan(errorText, 2);
+                grid.Children.Add(errorText);
             }
+        }
+
+        private void RenderModels(IEnumerable<WhisperModel> models)
+        {
+            var grid = this.FindControl<Grid>("ModelsGrid");
+            if (grid == null) return;
+
+            grid.Children.Clear();
+            grid.RowDefinitions.Clear();
+
+            var list = models?.ToList() ?? new List<WhisperModel>();
+            if (list.Count == 0)
+            {
+                var noModelsText = new TextBlock
+                {
+                    Text = "No models match your search.",
+                    FontSize = 16,
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    Margin = new Avalonia.Thickness(0, 50, 0, 0)
+                };
+                Grid.SetColumnSpan(noModelsText, 2);
+                grid.Children.Add(noModelsText);
+                return;
+            }
+
+            int i = 0;
+            foreach (var model in list.OrderBy(m => m.FileName))
+            {
+                var card = CreateModelCard(model);
+
+                int row = i / 2;
+                int col = i % 2;
+                while (grid.RowDefinitions.Count <= row)
+                    grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+
+                Grid.SetRow(card, row);
+                Grid.SetColumn(card, col);
+
+                card.Margin = new Avalonia.Thickness(col == 0 ? 0 : 10, 0, 0, 10);
+                card.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+
+                grid.Children.Add(card);
+                i++;
+            }
+        }
+
+        private void SearchBox_TextChanged(object? sender, TextChangedEventArgs e)
+        {
+            var q = (sender as TextBox)?.Text?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(q))
+            {
+                RenderModels(_availableModels);
+                return;
+            }
+
+            var filtered = _availableModels.Where(m =>
+                   (m.DisplayName?.IndexOf(q, StringComparison.OrdinalIgnoreCase) ?? -1) >= 0
+                || (m.FileName?.IndexOf(q, StringComparison.OrdinalIgnoreCase) ?? -1) >= 0
+                || (m.Size?.IndexOf(q, StringComparison.OrdinalIgnoreCase) ?? -1) >= 0);
+
+            RenderModels(filtered);
         }
 
         private async Task<List<WhisperModel>> FetchModelsFromHuggingFace()
@@ -123,7 +187,7 @@ namespace subtitles_maker.Views.Models
                         string sizeString = FormatFileSize(size);
                         string downloadUrl = $"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/{fileName}";
 
-                        models.Add(new WhisperModel(fileName, displayName, sizeString, downloadUrl));
+                        models.Add(new WhisperModel(fileName, displayName, sizeString, downloadUrl, size));
                     }
                 }
             }
@@ -167,7 +231,29 @@ namespace subtitles_maker.Views.Models
         private Border CreateModelCard(WhisperModel model)
         {
             string modelPath = Path.Combine(ModelsDirectory, model.FileName);
+            string partialPath = modelPath + ".part";
             bool isDownloaded = File.Exists(modelPath);
+            // If a 'final' file exists but is undersized, treat it as partial and rename for resume
+            if (isDownloaded)
+            {
+                try
+                {
+                    var fi = new FileInfo(modelPath);
+                    if (model.SizeBytes > 0 && fi.Length < model.SizeBytes)
+                    {
+                        // rename to .part so resume logic can pick up
+#if NET6_0_OR_GREATER
+                        File.Move(modelPath, partialPath, true);
+#else
+                        if (File.Exists(partialPath)) File.Delete(partialPath);
+                        File.Move(modelPath, partialPath);
+#endif
+                        isDownloaded = false;
+                    }
+                }
+                catch { }
+            }
+            bool hasPartial = !isDownloaded && File.Exists(partialPath);
             var downloadButton = new Button
             {
                 Width = 45,
@@ -177,17 +263,41 @@ namespace subtitles_maker.Views.Models
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
                 Tag = model,
             };
-            ToolTip.SetTip(downloadButton, isDownloaded ? "Model already downloaded" : $"Download {model.DisplayName}");
+            ToolTip.SetTip(downloadButton, isDownloaded ? "Model downloaded" : hasPartial ? $"Resume {model.DisplayName}" : $"Download {model.DisplayName}");
 
             var downloadIcon = new Image
             {
                 Source = new Bitmap(AssetLoader.Open(new Uri(
-                    isDownloaded 
+                    isDownloaded
                         ? "avares://subtitles-maker/assets/icons/check-75.png"
-                        : "avares://subtitles-maker/assets/icons/download-75.png")))
+                        : hasPartial
+                            ? "avares://subtitles-maker/assets/icons/play-75.png"
+                            : "avares://subtitles-maker/assets/icons/download-75.png")))
             };
+            if (hasPartial)
+            {
+                downloadIcon.Width = 40;
+                downloadIcon.Height = 40;
+            }
             downloadButton.Content = downloadIcon;
-            downloadButton.Click += DownloadButton_Click;
+            downloadButton.Click += DownloadActionButton_Click;
+
+            // Delete button (hidden until downloading or when downloaded)
+            var deleteButton = new Button
+            {
+                Width = 45,
+                Height = 45,
+                Background = Brushes.Transparent,
+                BorderThickness = new Avalonia.Thickness(0),
+                Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
+                Content = new Image
+                {
+                    Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/close-75.png"))),
+                },
+                IsVisible = isDownloaded || hasPartial
+            };
+            ToolTip.SetTip(deleteButton, "Delete model");
+            deleteButton.Click += DeleteButton_Click;
 
             var openFolderButton = new Button
             {
@@ -253,7 +363,7 @@ namespace subtitles_maker.Views.Models
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                Children = { downloadButton, openFolderButton, openInNewButton }
+                Children = { deleteButton, downloadButton, openFolderButton, openInNewButton }
             };
 
             var contentGrid = new Grid
@@ -305,8 +415,14 @@ namespace subtitles_maker.Views.Models
                 ProgressBar = progressBar,
                 ProgressText = progressText,
                 DownloadButton = downloadButton,
+                DeleteButton = deleteButton,
                 OpenFolderButton = openFolderButton,
-                DownloadIcon = downloadIcon
+                DownloadIcon = downloadIcon,
+                FilePath = modelPath,
+                PartialPath = partialPath,
+                IsCompleted = isDownloaded,
+                IsPaused = hasPartial,
+                IsDownloading = false
             };
 
             return new Border
@@ -321,67 +437,146 @@ namespace subtitles_maker.Views.Models
             };
         }
 
-        private async void DownloadButton_Click(object? sender, RoutedEventArgs e)
+        private async void DownloadActionButton_Click(object? sender, RoutedEventArgs e)
         {
             if (sender is not Button button || button.Tag is not WhisperModel model)
                 return;
-
             if (!_activeDownloads.TryGetValue(model.FileName, out var progress))
                 return;
+            if (progress.IsCompleted)
+                return;
 
+            if (progress.IsDownloading && !progress.IsPaused)
+            {
+                progress.IsPaused = true;
+                progress.Cts?.Cancel();
+                // Icon switches to play (resume)
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/play-75.png")));
+                progress.DownloadIcon.Width = 40;
+                progress.DownloadIcon.Height = 40;
+                ToolTip.SetTip(progress.DownloadButton, $"Resume {model.DisplayName}");
+                return;
+            }
+
+            // Resume if paused
+            if (progress.IsPaused)
+            {
+                progress.Cts = new CancellationTokenSource();
+                progress.IsPaused = false;
+                progress.IsDownloading = true;
+                progress.ProgressBar.IsVisible = true;
+                progress.ProgressText.IsVisible = true;
+                progress.DeleteButton.IsVisible = true;
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/pause-75.png")));
+                ToolTip.SetTip(progress.DownloadButton, $"Pause {model.DisplayName}");
+
+                try
+                {
+                    await DownloadModel(model, progress, resume: true, progress.Cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Pause requested; state already handled
+                }
+                catch (Exception ex)
+                {
+                    progress.IsDownloading = false;
+                    progress.ProgressBar.IsVisible = false;
+                    progress.ProgressText.Text = $"Error: {ex.Message}";
+                    progress.ProgressText.Foreground = Brushes.Red;
+                    progress.ProgressText.IsVisible = true;
+                    await Task.Delay(5000);
+                    progress.ProgressText.IsVisible = false;
+                    // Reset action button to download icon on failure
+                    progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+                    progress.DownloadIcon.Width = double.NaN;
+                    progress.DownloadIcon.Height = double.NaN;
+                    ToolTip.SetTip(progress.DownloadButton, $"Download {model.DisplayName}");
+                    progress.DeleteButton.IsVisible = false;
+                }
+                return;
+            }
+
+            // Start fresh download
+            progress.Cts = new CancellationTokenSource();
+            progress.IsDownloading = true;
+            progress.IsPaused = false;
             progress.ProgressBar.IsVisible = true;
             progress.ProgressText.IsVisible = true;
+            progress.DeleteButton.IsVisible = true;
+            progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/pause-75.png")));
+            progress.DownloadIcon.Width = double.NaN;
+            progress.DownloadIcon.Height = double.NaN;
+            ToolTip.SetTip(progress.DownloadButton, $"Pause {model.DisplayName}");
 
             try
             {
-                await DownloadModel(model, progress);
-                
-                // Change icon to check mark
-                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(
-                    new Uri("avares://subtitles-maker/assets/icons/check-75.png")));
-                
-                progress.ProgressBar.IsVisible = false;
-                progress.ProgressText.IsVisible = false;
+                await DownloadModel(model, progress, resume: false, progress.Cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Pause requested; state already handled
             }
             catch (Exception ex)
             {
+                progress.IsDownloading = false;
                 progress.ProgressBar.IsVisible = false;
                 progress.ProgressText.Text = $"Error: {ex.Message}";
                 progress.ProgressText.Foreground = Brushes.Red;
                 progress.ProgressText.IsVisible = true;
-                
                 await Task.Delay(5000);
                 progress.ProgressText.IsVisible = false;
+                // Reset action button to download icon on failure
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+                progress.DownloadIcon.Width = double.NaN;
+                progress.DownloadIcon.Height = double.NaN;
+                ToolTip.SetTip(progress.DownloadButton, $"Download {model.DisplayName}");
+                progress.DeleteButton.IsVisible = false;
             }
         }
 
-        private async Task DownloadModel(WhisperModel model, DownloadProgress progress)
+        private async Task DownloadModel(WhisperModel model, DownloadProgress progress, bool resume, CancellationToken token)
         {
-            string modelPath = Path.Combine(ModelsDirectory, model.FileName);
-            
+            string modelPath = progress.FilePath;
+            string partialPath = progress.PartialPath;
+
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromHours(2);
 
-            using var response = await client.GetAsync(model.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+            long existing = 0;
+            if ((resume || File.Exists(partialPath)) && File.Exists(partialPath))
+            {
+                existing = new FileInfo(partialPath).Length;
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, model.DownloadUrl);
+            if (existing > 0)
+            {
+                request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(existing, null);
+            }
+
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             response.EnsureSuccessStatusCode();
 
-            var totalBytes = response.Content.Headers.ContentLength ?? 0;
+            var contentLength = response.Content.Headers.ContentLength ?? 0;
+            var totalBytes = existing + contentLength;
             var buffer = new byte[8192];
             var totalRead = 0L;
 
-            using var contentStream = await response.Content.ReadAsStreamAsync();
-            using var fileStream = new FileStream(modelPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            using var contentStream = await response.Content.ReadAsStreamAsync(token);
+            using var fileStream = new FileStream(partialPath, existing > 0 ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
             int bytesRead;
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), token)) > 0)
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead);
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
                 totalRead += bytesRead;
 
+                var downloaded = existing + totalRead;
                 if (totalBytes > 0)
                 {
-                    var percentage = (double)totalRead / totalBytes * 100;
-                    var downloadedMB = totalRead / 1024.0 / 1024.0;
+                    var percentage = (double)downloaded / totalBytes * 100;
+                    var downloadedMB = downloaded / 1024.0 / 1024.0;
                     var totalMB = totalBytes / 1024.0 / 1024.0;
 
                     await Dispatcher.UIThread.InvokeAsync(() =>
@@ -391,6 +586,65 @@ namespace subtitles_maker.Views.Models
                     });
                 }
             }
+
+            // Completed
+            progress.IsDownloading = false;
+            progress.IsCompleted = true;
+            try
+            {
+                // Move partial to final, overwriting if exists
+                #if NET6_0_OR_GREATER
+                    File.Move(partialPath, modelPath, true);
+                #else
+                    if (File.Exists(modelPath)) File.Delete(modelPath);
+                    File.Move(partialPath, modelPath);
+                #endif
+            }
+            catch { }
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                progress.ProgressBar.IsVisible = false;
+                progress.ProgressText.IsVisible = false;
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/check-75.png")));
+                progress.DownloadIcon.Width = double.NaN;
+                progress.DownloadIcon.Height = double.NaN;
+                ToolTip.SetTip(progress.DownloadButton, $"Model downloaded");
+                progress.DeleteButton.IsVisible = true; // keep delete option after completion
+            });
+        }
+
+        private async void DeleteButton_Click(object? sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn) return;
+            // Find the model from sibling download button tag or infer from mapping
+            var progress = _activeDownloads.Values.FirstOrDefault(p => p.DeleteButton == btn);
+            if (progress == null) return;
+
+            // Cancel any ongoing download
+            progress.IsPaused = false;
+            progress.Cts?.Cancel();
+
+            try
+            {
+                // Ensure stream is closed before deleting (download loop closes it on cancel/complete)
+                await Task.Delay(50);
+                if (!string.IsNullOrWhiteSpace(progress.PartialPath) && File.Exists(progress.PartialPath))
+                    File.Delete(progress.PartialPath);
+                if (!string.IsNullOrWhiteSpace(progress.FilePath) && File.Exists(progress.FilePath))
+                    File.Delete(progress.FilePath);
+            }
+            catch { }
+
+            // Reset UI to initial state (download available)
+            progress.IsDownloading = false;
+            progress.IsCompleted = false;
+            progress.ProgressBar.IsVisible = false;
+            progress.ProgressText.IsVisible = false;
+            progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+            progress.DownloadIcon.Width = double.NaN;
+            progress.DownloadIcon.Height = double.NaN;
+            ToolTip.SetTip(progress.DownloadButton, "Download");
+            progress.DeleteButton.IsVisible = false;
         }
 
         private void OpenModelFolder()
@@ -412,13 +666,15 @@ namespace subtitles_maker.Views.Models
             public string DisplayName { get; }
             public string Size { get; }
             public string DownloadUrl { get; }
+            public long SizeBytes { get; }
 
-            public WhisperModel(string fileName, string displayName, string size, string downloadUrl)
+            public WhisperModel(string fileName, string displayName, string size, string downloadUrl, long sizeBytes)
             {
                 FileName = fileName;
                 DisplayName = displayName;
                 Size = size;
                 DownloadUrl = downloadUrl;
+                SizeBytes = sizeBytes;
             }
         }
 
@@ -429,6 +685,13 @@ namespace subtitles_maker.Views.Models
             public Button DownloadButton { get; set; } = null!;
             public Button OpenFolderButton { get; set; } = null!;
             public Image DownloadIcon { get; set; } = null!;
+            public Button DeleteButton { get; set; } = null!;
+            public CancellationTokenSource? Cts { get; set; }
+            public bool IsDownloading { get; set; }
+            public bool IsPaused { get; set; }
+            public bool IsCompleted { get; set; }
+            public string FilePath { get; set; } = string.Empty;
+            public string PartialPath { get; set; } = string.Empty;
         }
     }
 }
