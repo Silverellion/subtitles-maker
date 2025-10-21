@@ -187,7 +187,7 @@ namespace subtitles_maker.Views.Models
                         string sizeString = FormatFileSize(size);
                         string downloadUrl = $"https://huggingface.co/ggerganov/whisper.cpp/resolve/main/{fileName}";
 
-                        models.Add(new WhisperModel(fileName, displayName, sizeString, downloadUrl));
+                        models.Add(new WhisperModel(fileName, displayName, sizeString, downloadUrl, size));
                     }
                 }
             }
@@ -231,7 +231,29 @@ namespace subtitles_maker.Views.Models
         private Border CreateModelCard(WhisperModel model)
         {
             string modelPath = Path.Combine(ModelsDirectory, model.FileName);
+            string partialPath = modelPath + ".part";
             bool isDownloaded = File.Exists(modelPath);
+            // If a 'final' file exists but is undersized, treat it as partial and rename for resume
+            if (isDownloaded)
+            {
+                try
+                {
+                    var fi = new FileInfo(modelPath);
+                    if (model.SizeBytes > 0 && fi.Length < model.SizeBytes)
+                    {
+                        // rename to .part so resume logic can pick up
+#if NET6_0_OR_GREATER
+                        File.Move(modelPath, partialPath, true);
+#else
+                        if (File.Exists(partialPath)) File.Delete(partialPath);
+                        File.Move(modelPath, partialPath);
+#endif
+                        isDownloaded = false;
+                    }
+                }
+                catch { }
+            }
+            bool hasPartial = !isDownloaded && File.Exists(partialPath);
             var downloadButton = new Button
             {
                 Width = 45,
@@ -241,15 +263,22 @@ namespace subtitles_maker.Views.Models
                 Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
                 Tag = model,
             };
-            ToolTip.SetTip(downloadButton, isDownloaded ? "Model already downloaded" : $"Download {model.DisplayName}");
+            ToolTip.SetTip(downloadButton, isDownloaded ? "Model downloaded" : hasPartial ? $"Resume {model.DisplayName}" : $"Download {model.DisplayName}");
 
             var downloadIcon = new Image
             {
                 Source = new Bitmap(AssetLoader.Open(new Uri(
-                    isDownloaded 
+                    isDownloaded
                         ? "avares://subtitles-maker/assets/icons/check-75.png"
-                        : "avares://subtitles-maker/assets/icons/download-75.png")))
+                        : hasPartial
+                            ? "avares://subtitles-maker/assets/icons/play-75.png"
+                            : "avares://subtitles-maker/assets/icons/download-75.png")))
             };
+            if (hasPartial)
+            {
+                downloadIcon.Width = 40;
+                downloadIcon.Height = 40;
+            }
             downloadButton.Content = downloadIcon;
             downloadButton.Click += DownloadActionButton_Click;
 
@@ -265,7 +294,7 @@ namespace subtitles_maker.Views.Models
                 {
                     Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/close-75.png"))),
                 },
-                IsVisible = isDownloaded
+                IsVisible = isDownloaded || hasPartial
             };
             ToolTip.SetTip(deleteButton, "Delete model");
             deleteButton.Click += DeleteButton_Click;
@@ -389,7 +418,11 @@ namespace subtitles_maker.Views.Models
                 DeleteButton = deleteButton,
                 OpenFolderButton = openFolderButton,
                 DownloadIcon = downloadIcon,
-                FilePath = modelPath
+                FilePath = modelPath,
+                PartialPath = partialPath,
+                IsCompleted = isDownloaded,
+                IsPaused = hasPartial,
+                IsDownloading = false
             };
 
             return new Border
@@ -505,14 +538,15 @@ namespace subtitles_maker.Views.Models
         private async Task DownloadModel(WhisperModel model, DownloadProgress progress, bool resume, CancellationToken token)
         {
             string modelPath = progress.FilePath;
+            string partialPath = progress.PartialPath;
 
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromHours(2);
 
             long existing = 0;
-            if ((resume || File.Exists(modelPath)) && File.Exists(modelPath))
+            if ((resume || File.Exists(partialPath)) && File.Exists(partialPath))
             {
-                existing = new FileInfo(modelPath).Length;
+                existing = new FileInfo(partialPath).Length;
             }
 
             using var request = new HttpRequestMessage(HttpMethod.Get, model.DownloadUrl);
@@ -530,7 +564,7 @@ namespace subtitles_maker.Views.Models
             var totalRead = 0L;
 
             using var contentStream = await response.Content.ReadAsStreamAsync(token);
-            using var fileStream = new FileStream(modelPath, existing > 0 ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            using var fileStream = new FileStream(partialPath, existing > 0 ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
             int bytesRead;
             while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), token)) > 0)
@@ -556,6 +590,17 @@ namespace subtitles_maker.Views.Models
             // Completed
             progress.IsDownloading = false;
             progress.IsCompleted = true;
+            try
+            {
+                // Move partial to final, overwriting if exists
+                #if NET6_0_OR_GREATER
+                    File.Move(partialPath, modelPath, true);
+                #else
+                    if (File.Exists(modelPath)) File.Delete(modelPath);
+                    File.Move(partialPath, modelPath);
+                #endif
+            }
+            catch { }
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 progress.ProgressBar.IsVisible = false;
@@ -581,12 +626,12 @@ namespace subtitles_maker.Views.Models
 
             try
             {
+                // Ensure stream is closed before deleting (download loop closes it on cancel/complete)
+                await Task.Delay(50);
+                if (!string.IsNullOrWhiteSpace(progress.PartialPath) && File.Exists(progress.PartialPath))
+                    File.Delete(progress.PartialPath);
                 if (!string.IsNullOrWhiteSpace(progress.FilePath) && File.Exists(progress.FilePath))
-                {
-                    // Ensure stream is closed before deleting (download loop closes it on cancel/complete)
-                    await Task.Delay(50);
                     File.Delete(progress.FilePath);
-                }
             }
             catch { }
 
@@ -621,13 +666,15 @@ namespace subtitles_maker.Views.Models
             public string DisplayName { get; }
             public string Size { get; }
             public string DownloadUrl { get; }
+            public long SizeBytes { get; }
 
-            public WhisperModel(string fileName, string displayName, string size, string downloadUrl)
+            public WhisperModel(string fileName, string displayName, string size, string downloadUrl, long sizeBytes)
             {
                 FileName = fileName;
                 DisplayName = displayName;
                 Size = size;
                 DownloadUrl = downloadUrl;
+                SizeBytes = sizeBytes;
             }
         }
 
@@ -644,6 +691,7 @@ namespace subtitles_maker.Views.Models
             public bool IsPaused { get; set; }
             public bool IsCompleted { get; set; }
             public string FilePath { get; set; } = string.Empty;
+            public string PartialPath { get; set; } = string.Empty;
         }
     }
 }
