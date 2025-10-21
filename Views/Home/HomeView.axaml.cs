@@ -8,7 +8,6 @@ using System.Linq;
 using Avalonia.Threading;
 using subtitles_maker.services;
 using subtitles_maker.Services;
-using subtitles_maker.Views.Models;
 
 namespace subtitles_maker.Views.Home
 {
@@ -16,6 +15,7 @@ namespace subtitles_maker.Views.Home
     {
         private readonly WhisperService _whisperService;
         private readonly FileProcessingService _fileProcessingService;
+        private bool _loadingConfig = false;
 
         public HomeView()
         {
@@ -55,6 +55,10 @@ namespace subtitles_maker.Views.Home
             var modelCombo = this.FindControl<ComboBox>("ModelPathComboBox");
             if (modelCombo != null)
                 modelCombo.SelectionChanged += ModelCombo_SelectionChanged;
+
+            var languageCombo = this.FindControl<ComboBox>("LanguageComboBox");
+            if (languageCombo != null)
+                languageCombo.SelectionChanged += LanguageCombo_SelectionChanged;
 
             DetachedFromVisualTree += (s, e) =>
             {
@@ -290,6 +294,7 @@ namespace subtitles_maker.Views.Home
 
         private void LoadConfigAndPopulateUI()
         {
+            _loadingConfig = true;
             // Populate model list from downloaded models directory
             try
             {
@@ -318,6 +323,7 @@ namespace subtitles_maker.Views.Home
             var cfg = ConfigService.Load();
             var modelCombo2 = this.FindControl<ComboBox>("ModelPathComboBox");
             var outputTb = this.FindControl<TextBox>("OutputPathTextBox");
+            var languageCombo = this.FindControl<ComboBox>("LanguageComboBox");
 
             if (modelCombo2 != null)
             {
@@ -341,12 +347,44 @@ namespace subtitles_maker.Views.Home
             {
                 outputTb.Text = string.IsNullOrWhiteSpace(cfg.OutputPath) ? string.Empty : cfg.OutputPath;
             }
+
+            // Set language selection from config
+            if (languageCombo != null)
+            {
+                var desired = string.IsNullOrWhiteSpace(cfg.Language) ? "English" : cfg.Language;
+                ComboBoxItem? match = null;
+                foreach (var item in languageCombo.Items?.Cast<object>() ?? Enumerable.Empty<object>())
+                {
+                    if (item is ComboBoxItem cbi && string.Equals(cbi.Content?.ToString(), desired, StringComparison.OrdinalIgnoreCase))
+                        match = cbi;
+                }
+                // If found, select it; otherwise select English if present; otherwise first item
+                if (match != null)
+                {
+                    languageCombo.SelectedItem = match;
+                }
+                else
+                {
+                    var english = languageCombo.Items?.Cast<object>()
+                        .OfType<ComboBoxItem>()
+                        .FirstOrDefault(x => string.Equals(x.Content?.ToString(), "English", StringComparison.OrdinalIgnoreCase));
+                    if (english != null)
+                        languageCombo.SelectedItem = english;
+                    else if ((languageCombo.Items as System.Collections.IList)?.Count > 0)
+                        languageCombo.SelectedIndex = 0;
+                }
+            }
+            _loadingConfig = false;
         }
 
         private void PersistConfig()
         {
             var modelCombo = this.FindControl<ComboBox>("ModelPathComboBox");
             var outputTb = this.FindControl<TextBox>("OutputPathTextBox");
+            var languageCombo = this.FindControl<ComboBox>("LanguageComboBox");
+
+            if (_loadingConfig)
+                return;
 
             var cfg = ConfigService.Load();
             var selected = modelCombo?.SelectedItem as string;
@@ -360,6 +398,11 @@ namespace subtitles_maker.Views.Home
                 cfg.ModelPath = selected;
             }
             cfg.OutputPath = outputTb?.Text;
+            // Save language
+            if (languageCombo?.SelectedItem is ComboBoxItem langItem)
+                cfg.Language = langItem.Content?.ToString() ?? "English";
+            else
+                cfg.Language = "English";
             ConfigService.Save(cfg);
         }
 
@@ -384,6 +427,13 @@ namespace subtitles_maker.Views.Home
 
         private void OutputPathTextBox_TextChanged(object? sender, TextChangedEventArgs e)
         {
+            PersistConfig();
+        }
+
+        private void LanguageCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (_loadingConfig)
+                return;
             PersistConfig();
         }
     }

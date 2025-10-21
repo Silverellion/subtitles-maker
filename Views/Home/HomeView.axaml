@@ -135,7 +135,6 @@
                 BorderBrush="rgb(80,80,80)"
                 BorderThickness="1"
                 Cursor="Hand"
-                SelectedIndex="0"
                 ToolTip.Tip="Select a language for transcription">
 
                 <ComboBoxItem Content="English"/>

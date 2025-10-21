@@ -8,6 +8,7 @@ namespace subtitles_maker.Services
     {
         public string? ModelPath { get; set; }
         public string? OutputPath { get; set; }
+        public string? Language { get; set; }
     }
 
     public static class ConfigService
@@ -26,7 +27,8 @@ namespace subtitles_maker.Services
                     Directory.CreateDirectory(DefaultOutputDir);
                     var cfg = new AppConfig
                     {
-                        OutputPath = DefaultOutputDir
+                        OutputPath = DefaultOutputDir,
+                        Language = "English"
                     };
                     Save(cfg);
                     return cfg;
@@ -40,6 +42,11 @@ namespace subtitles_maker.Services
                     Directory.CreateDirectory(DefaultOutputDir);
                     cfgObj.OutputPath = DefaultOutputDir;
                 }
+                // Default language
+                if (string.IsNullOrWhiteSpace(cfgObj.Language))
+                {
+                    cfgObj.Language = "English";
+                }
                 return cfgObj;
             }
             catch
@@ -49,7 +56,7 @@ namespace subtitles_maker.Services
                     Directory.CreateDirectory(DefaultOutputDir);
                 }
                 catch { }
-                return new AppConfig { OutputPath = DefaultOutputDir };
+                return new AppConfig { OutputPath = DefaultOutputDir, Language = "English" };
             }
         }
 
