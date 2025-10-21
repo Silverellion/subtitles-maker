@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using System.Threading;
 
 namespace subtitles_maker.Views.Models
 {
@@ -250,7 +251,24 @@ namespace subtitles_maker.Views.Models
                         : "avares://subtitles-maker/assets/icons/download-75.png")))
             };
             downloadButton.Content = downloadIcon;
-            downloadButton.Click += DownloadButton_Click;
+            downloadButton.Click += DownloadActionButton_Click;
+
+            // Delete button (hidden until downloading or when downloaded)
+            var deleteButton = new Button
+            {
+                Width = 45,
+                Height = 45,
+                Background = Brushes.Transparent,
+                BorderThickness = new Avalonia.Thickness(0),
+                Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
+                Content = new Image
+                {
+                    Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/close-75.png"))),
+                },
+                IsVisible = isDownloaded
+            };
+            ToolTip.SetTip(deleteButton, "Delete model");
+            deleteButton.Click += DeleteButton_Click;
 
             var openFolderButton = new Button
             {
@@ -316,7 +334,7 @@ namespace subtitles_maker.Views.Models
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                Children = { downloadButton, openFolderButton, openInNewButton }
+                Children = { deleteButton, downloadButton, openFolderButton, openInNewButton }
             };
 
             var contentGrid = new Grid
@@ -368,8 +386,10 @@ namespace subtitles_maker.Views.Models
                 ProgressBar = progressBar,
                 ProgressText = progressText,
                 DownloadButton = downloadButton,
+                DeleteButton = deleteButton,
                 OpenFolderButton = openFolderButton,
-                DownloadIcon = downloadIcon
+                DownloadIcon = downloadIcon,
+                FilePath = modelPath
             };
 
             return new Border
@@ -384,67 +404,137 @@ namespace subtitles_maker.Views.Models
             };
         }
 
-        private async void DownloadButton_Click(object? sender, RoutedEventArgs e)
+        private async void DownloadActionButton_Click(object? sender, RoutedEventArgs e)
         {
             if (sender is not Button button || button.Tag is not WhisperModel model)
                 return;
-
             if (!_activeDownloads.TryGetValue(model.FileName, out var progress))
                 return;
+            if (progress.IsCompleted)
+                return;
 
+            if (progress.IsDownloading && !progress.IsPaused)
+            {
+                progress.IsPaused = true;
+                progress.Cts?.Cancel();
+                // Icon switches to play (resume)
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/play-75.png")));
+                ToolTip.SetTip(progress.DownloadButton, $"Resume {model.DisplayName}");
+                return;
+            }
+
+            // Resume if paused
+            if (progress.IsPaused)
+            {
+                progress.Cts = new CancellationTokenSource();
+                progress.IsPaused = false;
+                progress.IsDownloading = true;
+                progress.ProgressBar.IsVisible = true;
+                progress.ProgressText.IsVisible = true;
+                progress.DeleteButton.IsVisible = true;
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/pause-75.png")));
+                ToolTip.SetTip(progress.DownloadButton, $"Pause {model.DisplayName}");
+
+                try
+                {
+                    await DownloadModel(model, progress, resume: true, progress.Cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Pause requested; state already handled
+                }
+                catch (Exception ex)
+                {
+                    progress.IsDownloading = false;
+                    progress.ProgressBar.IsVisible = false;
+                    progress.ProgressText.Text = $"Error: {ex.Message}";
+                    progress.ProgressText.Foreground = Brushes.Red;
+                    progress.ProgressText.IsVisible = true;
+                    await Task.Delay(5000);
+                    progress.ProgressText.IsVisible = false;
+                    // Reset action button to download icon on failure
+                    progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+                    ToolTip.SetTip(progress.DownloadButton, $"Download {model.DisplayName}");
+                    progress.DeleteButton.IsVisible = false;
+                }
+                return;
+            }
+
+            // Start fresh download
+            progress.Cts = new CancellationTokenSource();
+            progress.IsDownloading = true;
+            progress.IsPaused = false;
             progress.ProgressBar.IsVisible = true;
             progress.ProgressText.IsVisible = true;
+            progress.DeleteButton.IsVisible = true;
+            progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/pause-75.png")));
+            ToolTip.SetTip(progress.DownloadButton, $"Pause {model.DisplayName}");
 
             try
             {
-                await DownloadModel(model, progress);
-                
-                // Change icon to check mark
-                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(
-                    new Uri("avares://subtitles-maker/assets/icons/check-75.png")));
-                
-                progress.ProgressBar.IsVisible = false;
-                progress.ProgressText.IsVisible = false;
+                await DownloadModel(model, progress, resume: false, progress.Cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // Pause requested; state already handled
             }
             catch (Exception ex)
             {
+                progress.IsDownloading = false;
                 progress.ProgressBar.IsVisible = false;
                 progress.ProgressText.Text = $"Error: {ex.Message}";
                 progress.ProgressText.Foreground = Brushes.Red;
                 progress.ProgressText.IsVisible = true;
-                
                 await Task.Delay(5000);
                 progress.ProgressText.IsVisible = false;
+                // Reset action button to download icon on failure
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+                ToolTip.SetTip(progress.DownloadButton, $"Download {model.DisplayName}");
+                progress.DeleteButton.IsVisible = false;
             }
         }
 
-        private async Task DownloadModel(WhisperModel model, DownloadProgress progress)
+        private async Task DownloadModel(WhisperModel model, DownloadProgress progress, bool resume, CancellationToken token)
         {
-            string modelPath = Path.Combine(ModelsDirectory, model.FileName);
-            
+            string modelPath = progress.FilePath;
+
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromHours(2);
 
-            using var response = await client.GetAsync(model.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+            long existing = 0;
+            if ((resume || File.Exists(modelPath)) && File.Exists(modelPath))
+            {
+                existing = new FileInfo(modelPath).Length;
+            }
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, model.DownloadUrl);
+            if (existing > 0)
+            {
+                request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(existing, null);
+            }
+
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             response.EnsureSuccessStatusCode();
 
-            var totalBytes = response.Content.Headers.ContentLength ?? 0;
+            var contentLength = response.Content.Headers.ContentLength ?? 0;
+            var totalBytes = existing + contentLength;
             var buffer = new byte[8192];
             var totalRead = 0L;
 
-            using var contentStream = await response.Content.ReadAsStreamAsync();
-            using var fileStream = new FileStream(modelPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            using var contentStream = await response.Content.ReadAsStreamAsync(token);
+            using var fileStream = new FileStream(modelPath, existing > 0 ? FileMode.Append : FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
             int bytesRead;
-            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), token)) > 0)
             {
-                await fileStream.WriteAsync(buffer, 0, bytesRead);
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
                 totalRead += bytesRead;
 
+                var downloaded = existing + totalRead;
                 if (totalBytes > 0)
                 {
-                    var percentage = (double)totalRead / totalBytes * 100;
-                    var downloadedMB = totalRead / 1024.0 / 1024.0;
+                    var percentage = (double)downloaded / totalBytes * 100;
+                    var downloadedMB = downloaded / 1024.0 / 1024.0;
                     var totalMB = totalBytes / 1024.0 / 1024.0;
 
                     await Dispatcher.UIThread.InvokeAsync(() =>
@@ -454,6 +544,50 @@ namespace subtitles_maker.Views.Models
                     });
                 }
             }
+
+            // Completed
+            progress.IsDownloading = false;
+            progress.IsCompleted = true;
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                progress.ProgressBar.IsVisible = false;
+                progress.ProgressText.IsVisible = false;
+                progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/check-75.png")));
+                ToolTip.SetTip(progress.DownloadButton, $"Model downloaded");
+                progress.DeleteButton.IsVisible = true; // keep delete option after completion
+            });
+        }
+
+        private async void DeleteButton_Click(object? sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn) return;
+            // Find the model from sibling download button tag or infer from mapping
+            var progress = _activeDownloads.Values.FirstOrDefault(p => p.DeleteButton == btn);
+            if (progress == null) return;
+
+            // Cancel any ongoing download
+            progress.IsPaused = false;
+            progress.Cts?.Cancel();
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(progress.FilePath) && File.Exists(progress.FilePath))
+                {
+                    // Ensure stream is closed before deleting (download loop closes it on cancel/complete)
+                    await Task.Delay(50);
+                    File.Delete(progress.FilePath);
+                }
+            }
+            catch { }
+
+            // Reset UI to initial state (download available)
+            progress.IsDownloading = false;
+            progress.IsCompleted = false;
+            progress.ProgressBar.IsVisible = false;
+            progress.ProgressText.IsVisible = false;
+            progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+            ToolTip.SetTip(progress.DownloadButton, "Download");
+            progress.DeleteButton.IsVisible = false;
         }
 
         private void OpenModelFolder()
@@ -492,6 +626,12 @@ namespace subtitles_maker.Views.Models
             public Button DownloadButton { get; set; } = null!;
             public Button OpenFolderButton { get; set; } = null!;
             public Image DownloadIcon { get; set; } = null!;
+            public Button DeleteButton { get; set; } = null!;
+            public CancellationTokenSource? Cts { get; set; }
+            public bool IsDownloading { get; set; }
+            public bool IsPaused { get; set; }
+            public bool IsCompleted { get; set; }
+            public string FilePath { get; set; } = string.Empty;
         }
     }
 }
