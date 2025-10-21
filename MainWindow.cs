@@ -54,5 +54,19 @@ namespace subtitles_maker
             }
             catch (Exception) { }
         }
+
+        public void NavigateToModels()
+        {
+            var mainContent = this.FindControl<ContentControl>("MainContent");
+            if (mainContent != null)
+                mainContent.Content = new ModelsView();
+
+            var sidebar = this.FindControl<Views.Sidebar.SidebarView>("AppSidebar");
+            sidebar?.ActivateModels();
+
+            var contentBorder = this.FindControl<Border>("ContentBorder");
+            if (contentBorder != null)
+                contentBorder.Background = new SolidColorBrush(Color.FromRgb(30, 30, 30));
+        }
     }
 }

@@ -84,6 +84,17 @@ namespace subtitles_maker.Views.Sidebar
             UpdateSelection("ModelsButton");
         }
 
+        // Public helpers to allow other views/windows to set the active item
+        public void ActivateHome()
+        {
+            SelectHome();
+        }
+
+        public void ActivateModels()
+        {
+            SelectModels();
+        }
+
         private void UpdateSelection(string selectedButtonName)
         {
             Dispatcher.UIThread.Post(() =>
