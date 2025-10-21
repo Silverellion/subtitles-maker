@@ -1,7 +1,32 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="subtitles_maker.Views.Models.ModelsView"
-             Background="transparent">
+             Background="transparent"
+             PointerPressed="Root_PointerPressed">
+
+    <UserControl.Styles>
+        <Style Selector="Border#SearchContainer">
+            <Setter Property="Background" Value="#2A2A2A"/>
+            <Setter Property="BorderBrush" Value="#505050"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+        <Style Selector="Border#SearchContainer:pointerover">
+            <Setter Property="Background" Value="#2E2E2E"/>
+        </Style>
+        <Style Selector="Border#SearchContainer:focus-within">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="BorderBrush" Value="#666666"/>
+        </Style>
+
+        <Style Selector="TextBox#SearchBox">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Styles>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="20">
@@ -18,23 +43,18 @@
                 Foreground="rgb(200,200,200)"
                 Margin="0,0,0,10"/>
 
-            <Border Background="#262626"
-                    BorderBrush="#505050"
-                    BorderThickness="1"
-                    CornerRadius="6"
+            <Border x:Name="SearchContainer"
                     HorizontalAlignment="Right"
                     Margin="0,0,0,10">
-                <Grid ColumnDefinitions="Auto,*" Height="34">
+                <Grid ColumnDefinitions="Auto,*" Height="38">
                     <Image Source="avares://subtitles-maker/assets/icons/search-50.png"
-                           Width="16" Height="16" Margin="10,0,8,0"
+                           Width="20" Height="20" Margin="12,0,8,0"
                            VerticalAlignment="Center" Opacity="0.85"/>
                     <TextBox x:Name="SearchBox"
                              Grid.Column="1"
-                             Background="Transparent"
-                             BorderThickness="0"
                              Foreground="White"
                              Watermark="Search models..."
-                             MinWidth="260"
+                             MinWidth="280"
                              TextChanged="SearchBox_TextChanged"/>
                 </Grid>
             </Border>

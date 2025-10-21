@@ -29,6 +29,21 @@ namespace subtitles_maker.Views.Models
             LoadModelsFromApi();
         }
 
+        // Unfocus the search box when clicking anywhere outside of it
+        private void Root_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+        {
+            var tb = this.FindControl<TextBox>("SearchBox");
+            if (tb == null)
+                return;
+
+            var pos = e.GetPosition(tb);
+            if (pos.X < 0 || pos.Y < 0 || pos.X > tb.Bounds.Width || pos.Y > tb.Bounds.Height)
+            {
+                var top = TopLevel.GetTopLevel(this);
+                top?.FocusManager?.ClearFocus();
+            }
+        }
+
         private async void LoadModelsFromApi()
         {
             var grid = this.FindControl<Grid>("ModelsGrid");
