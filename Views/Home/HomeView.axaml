@@ -18,12 +18,8 @@
             Padding="10"
             MinHeight="40"
             Cursor="Hand"
-            SelectedIndex="-1">
-            <ComboBox.Styles>
-                <Style Selector="ComboBox:pointerover">
-                    <Setter Property="BorderBrush" Value="rgb(100,100,100)" />
-                </Style>
-            </ComboBox.Styles>
+            SelectedIndex="-1"
+            ToolTip.Tip="Select or download a model for transcription">
         </ComboBox>
 
         <Grid Grid.Row="1" Margin="40,10,40,0">
@@ -90,7 +86,7 @@
                 Padding="0"
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch"
-                ToolTip.Tip="Click to select audio files or drag and drop them here">
+                ToolTip.Tip="Click or drag audio files here to upload">
 
                 <Button.Styles>
                     <Style Selector="Button:pointerover">
@@ -139,7 +135,8 @@
                 BorderBrush="rgb(80,80,80)"
                 BorderThickness="1"
                 Cursor="Hand"
-                SelectedIndex="0">
+                SelectedIndex="0"
+                ToolTip.Tip="Select a language for transcription">
 
                 <ComboBoxItem Content="English"/>
                 <ComboBoxItem Content="French"/>
