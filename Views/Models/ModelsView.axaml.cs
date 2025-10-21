@@ -419,6 +419,8 @@ namespace subtitles_maker.Views.Models
                 progress.Cts?.Cancel();
                 // Icon switches to play (resume)
                 progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/play-75.png")));
+                progress.DownloadIcon.Width = 40;
+                progress.DownloadIcon.Height = 40;
                 ToolTip.SetTip(progress.DownloadButton, $"Resume {model.DisplayName}");
                 return;
             }
@@ -454,6 +456,8 @@ namespace subtitles_maker.Views.Models
                     progress.ProgressText.IsVisible = false;
                     // Reset action button to download icon on failure
                     progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+                    progress.DownloadIcon.Width = double.NaN;
+                    progress.DownloadIcon.Height = double.NaN;
                     ToolTip.SetTip(progress.DownloadButton, $"Download {model.DisplayName}");
                     progress.DeleteButton.IsVisible = false;
                 }
@@ -468,6 +472,8 @@ namespace subtitles_maker.Views.Models
             progress.ProgressText.IsVisible = true;
             progress.DeleteButton.IsVisible = true;
             progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/pause-75.png")));
+            progress.DownloadIcon.Width = double.NaN;
+            progress.DownloadIcon.Height = double.NaN;
             ToolTip.SetTip(progress.DownloadButton, $"Pause {model.DisplayName}");
 
             try
@@ -489,6 +495,8 @@ namespace subtitles_maker.Views.Models
                 progress.ProgressText.IsVisible = false;
                 // Reset action button to download icon on failure
                 progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+                progress.DownloadIcon.Width = double.NaN;
+                progress.DownloadIcon.Height = double.NaN;
                 ToolTip.SetTip(progress.DownloadButton, $"Download {model.DisplayName}");
                 progress.DeleteButton.IsVisible = false;
             }
@@ -553,6 +561,8 @@ namespace subtitles_maker.Views.Models
                 progress.ProgressBar.IsVisible = false;
                 progress.ProgressText.IsVisible = false;
                 progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/check-75.png")));
+                progress.DownloadIcon.Width = double.NaN;
+                progress.DownloadIcon.Height = double.NaN;
                 ToolTip.SetTip(progress.DownloadButton, $"Model downloaded");
                 progress.DeleteButton.IsVisible = true; // keep delete option after completion
             });
@@ -586,6 +596,8 @@ namespace subtitles_maker.Views.Models
             progress.ProgressBar.IsVisible = false;
             progress.ProgressText.IsVisible = false;
             progress.DownloadIcon.Source = new Bitmap(AssetLoader.Open(new Uri("avares://subtitles-maker/assets/icons/download-75.png")));
+            progress.DownloadIcon.Width = double.NaN;
+            progress.DownloadIcon.Height = double.NaN;
             ToolTip.SetTip(progress.DownloadButton, "Download");
             progress.DeleteButton.IsVisible = false;
         }
