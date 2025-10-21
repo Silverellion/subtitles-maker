@@ -18,9 +18,7 @@
                 Foreground="rgb(200,200,200)"
                 Margin="0,0,0,20"/>
 
-            <StackPanel x:Name="ModelsStackPanel" Spacing="0">
-                <!-- Model cards will be added here dynamically -->
-            </StackPanel>
+            <Grid x:Name="ModelsGrid" ColumnDefinitions="*,*"/>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

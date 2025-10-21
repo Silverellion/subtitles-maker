@@ -31,10 +31,11 @@ namespace subtitles_maker.Views.Models
 
         private async void LoadModelsFromApi()
         {
-            var stackPanel = this.FindControl<StackPanel>("ModelsStackPanel");
-            if (stackPanel == null) return;
+            var grid = this.FindControl<Grid>("ModelsGrid");
+            if (grid == null) return;
 
-            stackPanel.Children.Clear();
+            grid.Children.Clear();
+            grid.RowDefinitions.Clear();
 
             // Show loading indicator
             var loadingText = new TextBlock
@@ -45,13 +46,15 @@ namespace subtitles_maker.Views.Models
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                 Margin = new Avalonia.Thickness(0, 50, 0, 0)
             };
-            stackPanel.Children.Add(loadingText);
+            Grid.SetColumnSpan(loadingText, 2);
+            grid.Children.Add(loadingText);
 
             try
             {
                 _availableModels = await FetchModelsFromHuggingFace();
-                
-                stackPanel.Children.Clear();
+
+                grid.Children.Clear();
+                grid.RowDefinitions.Clear();
 
                 if (_availableModels.Count == 0)
                 {
@@ -63,19 +66,37 @@ namespace subtitles_maker.Views.Models
                         HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
                         Margin = new Avalonia.Thickness(0, 50, 0, 0)
                     };
-                    stackPanel.Children.Add(noModelsText);
+                    Grid.SetColumnSpan(noModelsText, 2);
+                    grid.Children.Add(noModelsText);
                     return;
                 }
 
+                int i = 0;
                 foreach (var model in _availableModels.OrderBy(m => m.FileName))
                 {
-                    var modelCard = CreateModelCard(model);
-                    stackPanel.Children.Add(modelCard);
+                    var card = CreateModelCard(model);
+
+                    // Ensure rows exist
+                    int row = i / 2;
+                    int col = i % 2;
+                    while (grid.RowDefinitions.Count <= row)
+                        grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+
+                    Grid.SetRow(card, row);
+                    Grid.SetColumn(card, col);
+
+                    card.Margin = new Avalonia.Thickness(col == 0 ? 0 : 10, 0, 0, 10);
+                    card.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+
+                    grid.Children.Add(card);
+                    i++;
                 }
             }
             catch (Exception ex)
             {
-                stackPanel.Children.Clear();
+                grid.Children.Clear();
+                grid.RowDefinitions.Clear();
+
                 var errorText = new TextBlock
                 {
                     Text = $"Error loading models: {ex.Message}",
@@ -85,7 +106,8 @@ namespace subtitles_maker.Views.Models
                     Margin = new Avalonia.Thickness(0, 50, 0, 0),
                     TextWrapping = TextWrapping.Wrap
                 };
-                stackPanel.Children.Add(errorText);
+                Grid.SetColumnSpan(errorText, 2);
+                grid.Children.Add(errorText);
             }
         }
 
