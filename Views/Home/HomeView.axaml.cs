@@ -7,6 +7,8 @@ using Avalonia.Input;
 using System.Linq;
 using Avalonia.Threading;
 using subtitles_maker.services;
+using subtitles_maker.Services;
+using subtitles_maker.Views.Models;
 
 namespace subtitles_maker.Views.Home
 {
@@ -28,6 +30,7 @@ namespace subtitles_maker.Views.Home
             InitializeApplication();
             SetupEventHandlers();
             SetupDropZone();
+            LoadConfigAndPopulateUI();
         }
 
         private void InitializeApplication()
@@ -37,12 +40,6 @@ namespace subtitles_maker.Views.Home
 
         private void SetupEventHandlers()
         {
-            if (ChooseNewModelButton != null)
-                ChooseNewModelButton.Click += ChooseNewModelButton_Click;
-
-            if (OpenModelFolderButton != null)
-                OpenModelFolderButton.Click += OpenModelFolderButton_Click;
-
             if (ChooseNewOutputFolderButton != null)
                 ChooseNewOutputFolderButton.Click += ChooseNewOutputFolderButton_Click;
 
@@ -51,6 +48,18 @@ namespace subtitles_maker.Views.Home
 
             if (DropZoneButton != null)
                 DropZoneButton.Click += DropZoneButton_Click;
+
+            if (OutputPathTextBox != null)
+                OutputPathTextBox.AddHandler(TextBox.TextChangedEvent, (EventHandler<TextChangedEventArgs>)OutputPathTextBox_TextChanged);
+
+            var modelCombo = this.FindControl<ComboBox>("ModelPathComboBox");
+            if (modelCombo != null)
+                modelCombo.SelectionChanged += ModelCombo_SelectionChanged;
+
+            DetachedFromVisualTree += (s, e) =>
+            {
+                PersistConfig();
+            };
         }
 
 
@@ -93,7 +102,7 @@ namespace subtitles_maker.Views.Home
 
                         if (audioFiles.Count > 0)
                         {
-                            string modelPath = ModelPathTextBox?.Text ?? "";
+                            string modelPath = this.FindControl<ComboBox>("ModelPathComboBox")?.SelectedItem as string ?? string.Empty;
                             string outputPath = OutputPathTextBox?.Text ?? "";
                             string selectedLanguage = GetSelectedLanguage();
 
@@ -149,7 +158,7 @@ namespace subtitles_maker.Views.Home
 
                     if (audioFiles.Count > 0)
                     {
-                        string modelPath = ModelPathTextBox?.Text ?? "";
+                        string modelPath = this.FindControl<ComboBox>("ModelPathComboBox")?.SelectedItem as string ?? string.Empty;
                         string outputPath = OutputPathTextBox?.Text ?? "";
                         string selectedLanguage = GetSelectedLanguage();
 
@@ -171,73 +180,7 @@ namespace subtitles_maker.Views.Home
             return "English";
         }
 
-        private async void ChooseNewModelButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            try
-            {
-                var topLevel = TopLevel.GetTopLevel(this);
-                if (topLevel == null)
-                {
-                    LogToTerminal("Error: Unable to get top level window");
-                    return;
-                }
-                var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-                {
-                    Title = "Select Model File",
-                    AllowMultiple = false,
-                    FileTypeFilter =
-                    [
-                        new FilePickerFileType("Model Files")
-                        {
-                            Patterns = [ "*.bin", "*.ggml" ]
-                        },
-                        new FilePickerFileType("All Files")
-                        {
-                            Patterns = [ "*.*" ]
-                        }
-                    ]
-                });
-
-                if (files.Count > 0)
-                {
-                    var filePath = files[0].Path.LocalPath;
-                    if (ModelPathTextBox != null)
-                    {
-                        ModelPathTextBox.Text = filePath;
-                        LogToTerminal($"Model path set to: {filePath}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogToTerminal($"Error opening file dialog: {ex.Message}");
-            }
-        }
-
-        private void OpenModelFolderButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-        {
-            try
-            {
-                string? modelPath = ModelPathTextBox?.Text;
-                if (!string.IsNullOrEmpty(modelPath) && File.Exists(modelPath))
-                {
-                    string directory = Path.GetDirectoryName(modelPath) ?? string.Empty;
-                    if (!string.IsNullOrEmpty(directory) && Directory.Exists(directory))
-                    {
-                        OpenFolder(directory);
-                        LogToTerminal($"Opened folder: {directory}");
-                    }
-                    else
-                        LogToTerminal("Invalid model directory path.");
-                }
-                else
-                    LogToTerminal("Model file path is not valid.");
-            }
-            catch (Exception ex)
-            {
-                LogToTerminal($"Error opening model folder: {ex.Message}");
-            }
-        }
+        // Removed model picker buttons and handlers
 
         private async void ChooseNewOutputFolderButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
@@ -262,6 +205,7 @@ namespace subtitles_maker.Views.Home
                     if (OutputPathTextBox != null)
                     {
                         OutputPathTextBox.Text = folderPath;
+                        PersistConfig();
                         LogToTerminal($"Output path set to: {folderPath}");
                     }
                 }
@@ -342,6 +286,105 @@ namespace subtitles_maker.Views.Home
                 
                 TerminalLogTextBox.CaretIndex = TerminalLogTextBox.Text.Length;
             }
+        }
+
+        private void LoadConfigAndPopulateUI()
+        {
+            // Populate model list from downloaded models directory
+            try
+            {
+                var modelsDir = @"C:\subtitles-maker\models";
+                var modelCombo = this.FindControl<ComboBox>("ModelPathComboBox");
+                if (modelCombo != null)
+                {
+                    var list = new System.Collections.Generic.List<string>();
+                    const string Placeholder = "Select model";
+                    const string DownloadSentinel = "Download model";
+                    list.Add(Placeholder);
+                    if (Directory.Exists(modelsDir))
+                    {
+                        var modelFiles = Directory.GetFiles(modelsDir, "*.bin", SearchOption.TopDirectoryOnly).ToList();
+                        modelFiles.Sort(StringComparer.OrdinalIgnoreCase);
+                        list.AddRange(modelFiles);
+                    }
+                    // Always keep 'Download model' as last item
+                    list.Add(DownloadSentinel);
+                    modelCombo.ItemsSource = list;
+                    modelCombo.SelectedIndex = 0;
+                }
+            }
+            catch { }
+
+            var cfg = ConfigService.Load();
+            var modelCombo2 = this.FindControl<ComboBox>("ModelPathComboBox");
+            var outputTb = this.FindControl<TextBox>("OutputPathTextBox");
+
+            if (modelCombo2 != null)
+            {
+                if (!string.IsNullOrWhiteSpace(cfg.ModelPath))
+                {
+                    var existing = (modelCombo2.Items as System.Collections.IEnumerable)?.Cast<object>().Select(x => x?.ToString() ?? string.Empty).ToList() ?? new();
+                    if (!existing.Contains(cfg.ModelPath))
+                    {
+                        existing.Add(cfg.ModelPath);
+                        modelCombo2.ItemsSource = existing;
+                    }
+                    modelCombo2.SelectedItem = cfg.ModelPath;
+                }
+                else
+                {
+                    modelCombo2.SelectedIndex = (modelCombo2.Items as System.Collections.IList)?.Count > 0 ? 0 : -1;
+                }
+            }
+
+            if (outputTb != null)
+            {
+                outputTb.Text = string.IsNullOrWhiteSpace(cfg.OutputPath) ? string.Empty : cfg.OutputPath;
+            }
+        }
+
+        private void PersistConfig()
+        {
+            var modelCombo = this.FindControl<ComboBox>("ModelPathComboBox");
+            var outputTb = this.FindControl<TextBox>("OutputPathTextBox");
+
+            var cfg = ConfigService.Load();
+            var selected = modelCombo?.SelectedItem as string;
+            if (string.Equals(selected, "Select model", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(selected, "Download model", StringComparison.OrdinalIgnoreCase))
+            {
+                cfg.ModelPath = null;
+            }
+            else
+            {
+                cfg.ModelPath = selected;
+            }
+            cfg.OutputPath = outputTb?.Text;
+            ConfigService.Save(cfg);
+        }
+
+        private void ModelCombo_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            var combo = sender as ComboBox;
+            var value = combo?.SelectedItem as string;
+            if (string.Equals(value, "Download model", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    if (VisualRoot is MainWindow mw)
+                    {
+                        mw.NavigateToModels();
+                    }
+                }
+                catch { }
+                return;
+            }
+            PersistConfig();
+        }
+
+        private void OutputPathTextBox_TextChanged(object? sender, TextChangedEventArgs e)
+        {
+            PersistConfig();
         }
     }
 }

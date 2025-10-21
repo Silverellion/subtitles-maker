@@ -4,57 +4,32 @@
              Background="transparent">
 
     <Grid RowDefinitions="Auto,Auto,1*,0.5*" ColumnDefinitions="*">
-        <Grid Grid.Row="0" Margin="40,30,40,0">
-            <TextBox 
-                x:Name="ModelPathTextBox"
-                Text="C:\subtitles-maker\models\ggml-medium.bin"
-                Background="rgb(30,30,30)"
-                Foreground="rgb(255,255,255)"
-                CornerRadius="4"
-                FontSize="14"
-                Padding="10"
-                BorderBrush="rgb(80,80,80)"
-                BorderThickness="1">
-
-                <TextBox.InnerRightContent>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button 
-                                x:Name="OpenModelFolderButton" 
-                                Width="40" Height="40" 
-                                Margin="0,0,5,0"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Cursor="Hand"
-                                ToolTip.Tip="Open model folder">
-                            <Image 
-                                Source="avares://subtitles-maker/assets/icons/folder-open-50.png" 
-                                Width="24" 
-                                Height="24"/>
-                        </Button>
-
-                        <Button 
-                            x:Name="ChooseNewModelButton" 
-                            Width="40" Height="40" 
-                            Margin="0,0,5,0"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Cursor="Hand"
-                            ToolTip.Tip="Choose new model">
-                            <Image 
-                                Source="avares://subtitles-maker/assets/icons/folder-new-50.png" 
-                                Width="24" 
-                                Height="24"/>
-                        </Button>
-
-                    </StackPanel>
-                </TextBox.InnerRightContent>
-            </TextBox>
-        </Grid>
+        <ComboBox
+            Grid.Row="0"
+            Margin="40,30,40,0"
+            x:Name="ModelPathComboBox"
+            HorizontalAlignment="Stretch"
+            Background="rgb(30,30,30)"
+            Foreground="rgb(255,255,255)"
+            BorderBrush="rgb(80,80,80)"
+            BorderThickness="1"
+            CornerRadius="4"
+            FontSize="14"
+            Padding="10"
+            MinHeight="40"
+            Cursor="Hand"
+            SelectedIndex="-1">
+            <ComboBox.Styles>
+                <Style Selector="ComboBox:pointerover">
+                    <Setter Property="BorderBrush" Value="rgb(100,100,100)" />
+                </Style>
+            </ComboBox.Styles>
+        </ComboBox>
 
         <Grid Grid.Row="1" Margin="40,10,40,0">
             <TextBox 
                 x:Name="OutputPathTextBox"
-                Text="C:\subtitles-maker\output"
+                Watermark="Select output folder…"
                 Background="rgb(30,30,30)"
                 Foreground="rgb(255,255,255)"
                 CornerRadius="4"
